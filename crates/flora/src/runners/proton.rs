@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf, process::Stdio};
 use log::{debug, info};
 
 use crate::{
-    app::{FloraApp, FloraAppProtonConfig, FloraAppType, FloraAppWineConfig},
+    app::{FloraApp, FloraAppProtonConfig, FloraAppType},
     config::FloraConfig,
     desktop,
     dirs::FloraDirs,

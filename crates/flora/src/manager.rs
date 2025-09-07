@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use directories::{BaseDirs, ProjectDirs};
+use directories::ProjectDirs;
 use log::debug;
 
 use crate::{

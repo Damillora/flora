@@ -4,7 +4,6 @@ use std::{
 };
 
 use directories::BaseDirs;
-use log::debug;
 
 use crate::errors::FloraError;
 
