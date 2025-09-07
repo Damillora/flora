@@ -16,7 +16,7 @@ pub(crate) enum FloraAppType {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct FloraAppWineConfig {
     pub wine_prefix: Option<String>,
-    pub wine_runner: Option<String>,
+    pub wine_runtime: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -100,7 +100,7 @@ impl FloraApp {
                                     }
                                 }
                             },
-                            wine_runner: opts.wine_runner.to_owned(),
+                            wine_runtime: opts.wine_runner.to_owned(),
                         }),
                     })
                 } else {

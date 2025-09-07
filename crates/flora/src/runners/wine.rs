@@ -11,7 +11,7 @@ fn get_wine_dir(
     config: &FloraConfig,
     wine_app_config: &FloraAppWineConfig,
 ) -> PathBuf {
-    let wine_dir = if let Some(runner) = &wine_app_config.wine_runner {
+    let wine_dir = if let Some(runner) = &wine_app_config.wine_runtime {
         // Wine runtime is defined in app config
         let mut wine_path = dirs.get_wine_root();
         wine_path.push(runner);
