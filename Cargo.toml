@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = [ "crates/flora", "crates/flora_cli"]
+
+[workspace.package]
+authors = ["Damillora"]
+documentation = "https://flora.nanao.moe"

@@ -1,0 +1,22 @@
+[package]
+name = "flora_cli"
+version = "0.1.0"
+edition = "2024"
+
+authors = ["Damillora <developer@damillora.com>"]
+description = "A seed for your Wine prefixes - CLI interface"
+homepage = "https://flora.nanao.moe"
+repository = "https://github.com/Damillora/flora"
+license = "GPL-3.0-or-later"
+
+[[bin]]
+name = "flora-cli"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5.47", features = ["derive"] }
+env_logger = "0.11.8"
+flora = { version = "0.1.0", path = "../flora" }
+log = "0.4.28"
+serde = { version = "1.0.219", features = ["derive"] }
+toml = { version = "0.9.5", features = ["serde"] }
