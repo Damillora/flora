@@ -206,6 +206,7 @@ pub fn create_desktop_entry(
     let desktop_entry = format!(
         "[Desktop Entry]
 Type=Application
+Categories=X-Flora
 Name={}
 Icon={}
 Exec=flora run -w {}
