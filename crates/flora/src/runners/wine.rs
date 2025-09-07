@@ -3,10 +3,7 @@ use std::{fs, path::PathBuf, process::Stdio};
 use log::{debug, info};
 
 use crate::{
-    app::{FloraApp, FloraAppType, FloraAppWineConfig},
-    config::FloraConfig,
-    dirs::FloraDirs,
-    errors::FloraError,
+    app::{FloraApp, FloraAppType, FloraAppWineConfig}, config::FloraConfig, desktop, dirs::FloraDirs, errors::FloraError
 };
 
 fn get_wine_dir(
@@ -224,6 +221,10 @@ pub fn create_desktop_entry(
     dirs: &FloraDirs,
     app: &FloraApp,
 ) -> Result<(), FloraError> {
+    // Initialize menus
+    desktop::initialize_desktop_entries(&dirs)?;
+
+    // Create desktop entry files
     let desktop_entry = format!(
         "[Desktop Entry]
 Type=Application
@@ -235,8 +236,7 @@ Terminal=false",
         app.pretty_name, "applications-other", name, app.pretty_name
     );
 
-    let mut desktop_entry_location = dirs.applications_entry_dir.clone();
-    desktop_entry_location.push(format!("{}.desktop", name));
+    let desktop_entry_location = dirs.get_desktop_entry_file(&name);
 
     debug!(
         "Writing {} desktop entry to {}",

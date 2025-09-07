@@ -3,11 +3,16 @@ use std::{
     path::PathBuf,
 };
 
+use directories::BaseDirs;
+use log::debug;
+
 use crate::errors::FloraError;
 
 pub struct FloraDirs {
     pub flora_root: PathBuf,
-    pub applications_entry_dir: PathBuf,
+    applications_entry_dir: PathBuf,
+    config_menu_dir: PathBuf,
+    applications_directory_dir: PathBuf,
 }
 
 impl FloraDirs {
@@ -42,7 +47,6 @@ impl FloraDirs {
         wine_root
     }
 
-
     pub fn get_fallback_prefix(&self) -> PathBuf {
         let mut wine_root = self.flora_root.clone();
         wine_root.push("prefixes/default");
@@ -65,6 +69,25 @@ impl FloraDirs {
 
         Ok(log_file)
     }
+    pub fn get_desktop_entry_file(&self, name: &String) -> PathBuf {
+        let mut desktop_entry_location = self.applications_entry_dir.clone();
+        desktop_entry_location.push(format!("{}.desktop", name));
+
+        desktop_entry_location
+    }
+    pub fn get_desktop_directory_file(&self) -> PathBuf {
+        let mut desktop_entry_location = self.applications_directory_dir.clone();
+        desktop_entry_location.push(format!("flora.directory"));
+
+        desktop_entry_location
+    }
+
+    pub fn get_desktop_menu_file(&self) -> PathBuf {
+        let mut desktop_entry_location = self.config_menu_dir.clone();
+        desktop_entry_location.push(format!("flora.menu"));
+
+        desktop_entry_location
+    }
 
     pub fn create_dirs(&self) {
         fs::create_dir_all(&self.flora_root).unwrap();
@@ -78,10 +101,23 @@ impl FloraDirs {
 }
 
 impl FloraDirs {
-    pub fn new(flora_root: PathBuf, applications_entry_dir: PathBuf) -> Self {
+    pub fn new(flora_root: PathBuf) -> Self {
+        let base_dirs = BaseDirs::new().unwrap();
+
+        let mut applications_entry_dir = base_dirs.data_dir().to_path_buf();
+        applications_entry_dir.push("applications/flora");
+
+        let mut applications_directory_dir = base_dirs.data_dir().to_path_buf();
+        applications_directory_dir.push("desktop-directories");
+
+        let mut config_menu_dir = base_dirs.config_dir().to_path_buf();
+        config_menu_dir.push("menus/applications-merged");
+
         Self {
             flora_root: flora_root,
             applications_entry_dir: applications_entry_dir,
+            applications_directory_dir: applications_directory_dir,
+            config_menu_dir: config_menu_dir,
         }
     }
 }

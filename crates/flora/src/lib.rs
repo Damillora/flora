@@ -4,6 +4,9 @@ mod dirs;
 /// Flora configuration
 mod config;
 
+/// Desktop entry management
+mod desktop;
+
 /// Flora errors
 pub mod errors;
 

@@ -146,14 +146,9 @@ impl FloraManager {
     /// Creates a new FloraManager instance
     pub fn new() -> Self {
         let proj_dirs = ProjectDirs::from("com", "Damillora", "Flora").unwrap();
-        let base_dirs = BaseDirs::new().unwrap();
-        //
         let flora_root = proj_dirs.data_dir().to_path_buf();
 
-        let mut applications_entry_dir = base_dirs.data_dir().to_path_buf();
-        applications_entry_dir.push("applications/flora");
-
-        let dirs = FloraDirs::new(flora_root, applications_entry_dir);
+        let dirs = FloraDirs::new(flora_root);
         dirs.create_dirs();
 
         // Read config
