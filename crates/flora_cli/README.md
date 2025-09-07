@@ -1,5 +1,5 @@
 # flora_cli
-`flora-cli` is the command line interface to Flora, a
+`flora-cli` is the command line interface to Flora.
 
 ## Usage
 * `create`: Creates an app configuration
