@@ -19,7 +19,7 @@ fn get_wine_dir(
     } else if let Some(wine_config) = &config.wine {
         // Wine runtime is not defined in app config, but defined in global config
         let mut wine_path = dirs.get_wine_root();
-        wine_path.push(wine_config.default_wine_runner.clone());
+        wine_path.push(wine_config.default_wine_runtime.clone());
         PathBuf::from(&wine_path)
     } else {
         // Wine runtime is not defined in app config and global config, use system wine.

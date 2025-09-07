@@ -13,6 +13,7 @@ pub struct FloraDirs {
     applications_entry_dir: PathBuf,
     config_menu_dir: PathBuf,
     applications_directory_dir: PathBuf,
+    steam_compat_dir: PathBuf,
 }
 
 impl FloraDirs {
@@ -27,6 +28,15 @@ impl FloraDirs {
         wine_root.push("wine");
 
         wine_root
+    }
+    pub fn get_proton_root(&self) -> PathBuf {
+        let mut wine_root = self.flora_root.clone();
+        wine_root.push("proton");
+
+        wine_root
+    }
+    pub fn get_proton_root_steam(&self) -> PathBuf {
+        self.steam_compat_dir.clone()
     }
     pub fn get_log_root(&self) -> PathBuf {
         let mut log_root = self.flora_root.clone();
@@ -50,6 +60,12 @@ impl FloraDirs {
     pub fn get_fallback_prefix(&self) -> PathBuf {
         let mut wine_root = self.flora_root.clone();
         wine_root.push("prefixes/default");
+
+        wine_root
+    }
+    pub fn get_fallback_prefix_proton(&self) -> PathBuf {
+        let mut wine_root = self.flora_root.clone();
+        wine_root.push("prefixes/proton");
 
         wine_root
     }
@@ -94,6 +110,7 @@ impl FloraDirs {
         fs::create_dir_all(&self.applications_entry_dir).unwrap();
         fs::create_dir_all(&self.get_app_root()).unwrap();
         fs::create_dir_all(&self.get_wine_root()).unwrap();
+        fs::create_dir_all(&self.get_proton_root()).unwrap();
         fs::create_dir_all(&self.get_log_root()).unwrap();
         fs::create_dir_all(&self.get_prefixes_root()).unwrap();
         fs::create_dir_all(&self.get_icons_root()).unwrap();
@@ -113,11 +130,15 @@ impl FloraDirs {
         let mut config_menu_dir = base_dirs.config_dir().to_path_buf();
         config_menu_dir.push("menus/applications-merged");
 
+        let mut steam_compat_dir = base_dirs.data_dir().to_path_buf();
+        steam_compat_dir.push("Steam/compatibilitytools.d");
+
         Self {
             flora_root: flora_root,
             applications_entry_dir: applications_entry_dir,
             applications_directory_dir: applications_directory_dir,
             config_menu_dir: config_menu_dir,
+            steam_compat_dir: steam_compat_dir,
         }
     }
 }

@@ -9,6 +9,7 @@ use crate::{config::FloraConfig, errors::FloraError};
 pub(crate) enum FloraAppType {
     /// Wine App
     Wine(FloraAppWineConfig),
+    Proton(FloraAppProtonConfig),
     Other,
 }
 
@@ -16,6 +17,14 @@ pub(crate) enum FloraAppType {
 pub(crate) struct FloraAppWineConfig {
     pub wine_prefix: Option<String>,
     pub wine_runner: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct FloraAppProtonConfig {
+    pub proton_prefix: Option<String>,
+    pub proton_runtime: Option<String>,
+    pub game_id: Option<String>,
+    pub store: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -29,6 +38,7 @@ pub(crate) struct FloraApp {
 
 pub enum FloraAppOptions {
     WineOptions(FloraAppWineOptions),
+    ProtonOptions(FloraAppProtonOptions),
 }
 
 pub struct FloraAppWineOptions {
@@ -36,6 +46,15 @@ pub struct FloraAppWineOptions {
     pub executable_location: String,
     pub wine_prefix: Option<String>,
     pub wine_runner: Option<String>,
+}
+
+pub struct FloraAppProtonOptions {
+    pub pretty_name: Option<String>,
+    pub executable_location: String,
+    pub proton_prefix: Option<String>,
+    pub proton_runtime: Option<String>,
+    pub game_id: Option<String>,
+    pub store: Option<String>,
 }
 
 impl FloraApp {
@@ -46,39 +65,88 @@ impl FloraApp {
         app_options: &FloraAppOptions,
     ) -> Result<FloraApp, FloraError> {
         // Wine config must be set up in flora.toml first
-        if let Some(wine_config) = &config.wine {
-            match app_options {
-                FloraAppOptions::WineOptions(opts) => Ok(FloraApp {
-                    pretty_name: match &opts.pretty_name {
-                        Some(pretty_name) => pretty_name.to_owned(),
-                        None => name.to_owned(),
-                    },
-                    executable_location: opts.executable_location.to_owned(),
+        match app_options {
+            FloraAppOptions::WineOptions(opts) => {
+                if let Some(wine_config) = &config.wine {
+                    Ok(FloraApp {
+                        pretty_name: match &opts.pretty_name {
+                            Some(pretty_name) => pretty_name.to_owned(),
+                            None => name.to_owned(),
+                        },
+                        executable_location: opts.executable_location.to_owned(),
 
-                    app_type: FloraAppType::Wine(FloraAppWineConfig {
-                        wine_prefix: {
-                            match opts.wine_prefix.to_owned() {
-                                None => Some(wine_config.default_wine_prefix.clone()),
+                        app_type: FloraAppType::Wine(FloraAppWineConfig {
+                            wine_prefix: {
+                                match opts.wine_prefix.to_owned() {
+                                    None => Some(wine_config.default_wine_prefix.clone()),
+                                    Some(prefix) => {
+                                        if Path::new(&prefix).is_relative() {
+                                            // Prefix is relative to wine prefix location
+                                            let mut new_path = PathBuf::from(
+                                                wine_config.wine_prefix_location.clone(),
+                                            );
+                                            new_path.push(prefix);
+
+                                            Some(
+                                                new_path
+                                                    .into_os_string()
+                                                    .into_string()
+                                                    .map_err(|_| FloraError::InternalError)?,
+                                            )
+                                        } else {
+                                            // Prefix is absolute
+                                            Some(prefix)
+                                        }
+                                    }
+                                }
+                            },
+                            wine_runner: opts.wine_runner.to_owned(),
+                        }),
+                    })
+                } else {
+                    Err(FloraError::MissingRunnerConfig)
+                }
+            }
+            FloraAppOptions::ProtonOptions(opts) => {
+                if let Some(proton_config) = &config.proton {
+                    Ok(FloraApp {
+                        pretty_name: match &opts.pretty_name {
+                            Some(pretty_name) => pretty_name.to_owned(),
+                            None => name.to_owned(),
+                        },
+                        executable_location: opts.executable_location.to_owned(),
+                        app_type: FloraAppType::Proton(FloraAppProtonConfig {
+                            proton_prefix: match opts.proton_prefix.to_owned() {
+                                None => Some(proton_config.default_proton_prefix.clone()),
                                 Some(prefix) => {
                                     if Path::new(&prefix).is_relative() {
                                         // Prefix is relative to wine prefix location
-                                        let mut new_path = PathBuf::from(wine_config.wine_prefix_location.clone());
+                                        let mut new_path = PathBuf::from(
+                                            proton_config.proton_prefix_location.clone(),
+                                        );
                                         new_path.push(prefix);
 
-                                        Some(new_path.into_os_string().into_string().map_err(|_| FloraError::InternalError)?)
+                                        Some(
+                                            new_path
+                                                .into_os_string()
+                                                .into_string()
+                                                .map_err(|_| FloraError::InternalError)?,
+                                        )
                                     } else {
                                         // Prefix is absolute
                                         Some(prefix)
                                     }
                                 }
-                            }
-                        },
-                        wine_runner: opts.wine_runner.to_owned(),
-                    }),
-                }),
+                            },
+                            proton_runtime: opts.proton_runtime.to_owned(),
+                            game_id: opts.game_id.to_owned(),
+                            store: opts.store.to_owned(),
+                        }),
+                    })
+                } else {
+                    Err(FloraError::MissingRunnerConfig)
+                }
             }
-        } else {
-            Err(FloraError::MissingRunner)
         }
     }
 }

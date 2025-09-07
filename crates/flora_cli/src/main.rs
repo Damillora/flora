@@ -1,6 +1,8 @@
 use clap::{Args, Parser, Subcommand};
 use flora::{
-    app::{FloraAppOptions, FloraAppWineOptions}, errors::FloraError, manager::FloraManager
+    app::{FloraAppOptions, FloraAppProtonOptions, FloraAppWineOptions},
+    errors::FloraError,
+    manager::FloraManager,
 };
 
 /// Manage your Wine and Proton prefixes
@@ -37,6 +39,8 @@ pub struct CreateArgs {
 pub enum CreateCommands {
     /// Create a Wine app configuration,
     Wine(CreateWineArgs),
+    /// Create a Proton app configuration,
+    Proton(CreateProtonArgs),
 }
 
 #[derive(Args)]
@@ -64,6 +68,24 @@ pub struct CreateWineArgs {
     #[arg(short = 'r', long)]
     wine_runner: Option<String>,
 }
+#[derive(Args)]
+pub struct CreateProtonArgs {
+    #[command(flatten)]
+    app: CreateAppArgs,
+
+    /// Proton prefix for application
+    #[arg(short = 'p', long)]
+    proton_prefix: Option<String>,
+    /// Proton runtime for application
+    #[arg(short = 'r', long)]
+    proton_runtime: Option<String>,
+    #[arg(short = 'g', long)]
+    /// Game ID to be passed to UMU
+    game_id: Option<String>,
+    #[arg(short = 's', long)]
+    /// Store to be passed to UMU
+    store: Option<String>,
+}
 
 #[derive(Args)]
 pub struct DeleteArgs {
@@ -71,14 +93,12 @@ pub struct DeleteArgs {
     name: String,
 }
 
-
 #[derive(Args)]
 pub struct RunArgs {
     /// Name of app
     name: String,
     /// Launch the specified executable
     args: Option<Vec<String>>,
-
 
     /// Redirect program output to flora logs
     #[arg(short, long)]
@@ -95,7 +115,6 @@ pub struct DesktopArgs {
     name: String,
 }
 
-
 fn create_wine_app(manager: &FloraManager, args: &CreateWineArgs) -> Result<(), FloraError> {
     let app = FloraAppOptions::WineOptions(FloraAppWineOptions {
         pretty_name: args.app.pretty_name.clone(),
@@ -108,6 +127,19 @@ fn create_wine_app(manager: &FloraManager, args: &CreateWineArgs) -> Result<(), 
     manager.create_app(&args.app.name, &app)
 }
 
+fn create_proton_app(manager: &FloraManager, args: &CreateProtonArgs) -> Result<(), FloraError> {
+    let app = FloraAppOptions::ProtonOptions(FloraAppProtonOptions {
+        pretty_name: args.app.pretty_name.clone(),
+        executable_location: args.app.executable_location.clone().unwrap_or_default(),
+
+        proton_prefix: args.proton_prefix.clone(),
+        proton_runtime: args.proton_runtime.clone(),
+        game_id: args.game_id.clone(),
+        store: args.store.clone(),
+    });
+
+    manager.create_app(&args.app.name, &app)
+}
 fn main() -> Result<(), FloraError> {
     env_logger::init();
     let cli = Cli::parse();
@@ -117,11 +149,12 @@ fn main() -> Result<(), FloraError> {
     match &cli.command {
         Commands::Create(app_command) => match &app_command.commands {
             CreateCommands::Wine(args) => create_wine_app(&manager, args),
+            CreateCommands::Proton(args) => create_proton_app(&manager, args),
         },
         Commands::Delete(args) => manager.delete_app(&args.name),
         Commands::Config(args) => manager.app_config(&args.name, &args.args, args.quiet, args.wait),
         Commands::Tricks(args) => manager.app_tricks(&args.name, &args.args, args.quiet, args.wait),
-        Commands::Run(args) =>  manager.app_run(&args.name, &args.args, args.quiet, args.wait),
+        Commands::Run(args) => manager.app_run(&args.name, &args.args, args.quiet, args.wait),
         Commands::Desktop(args) => manager.create_desktop_entry(&args.name),
     }
 }

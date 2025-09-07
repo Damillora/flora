@@ -7,6 +7,7 @@ use crate::{dirs::FloraDirs, errors::FloraError};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FloraConfig {
     pub wine: Option<FloraWineConfig>,
+    pub proton: Option<FloraProtonConfig>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -15,7 +16,16 @@ pub struct FloraWineConfig {
 
     pub default_wine_prefix: String,
 
-    pub default_wine_runner: String,
+    pub default_wine_runtime: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FloraProtonConfig {
+    pub proton_prefix_location: String,
+
+    pub default_proton_prefix: String,
+
+    pub default_proton_runtime: String,
 }
 
 impl FloraConfig {
@@ -39,7 +49,20 @@ impl FloraConfig {
 
                     prefixes_dir.into_os_string().into_string().map_err(|_| FloraError::InternalError)?
                 },
-                default_wine_runner: String::from(""),
+                default_wine_runtime: String::from(""),
+            }),
+            proton: Some(FloraProtonConfig {
+                proton_prefix_location: {
+                    let prefixes_dir = dirs.get_prefixes_root();
+
+                    prefixes_dir.into_os_string().into_string().map_err(|_| FloraError::InternalError)?
+                },
+                default_proton_prefix: {
+                    let prefixes_dir = dirs.get_fallback_prefix_proton();
+
+                    prefixes_dir.into_os_string().into_string().map_err(|_| FloraError::InternalError)?
+                },
+                default_proton_runtime: String::from(""),
             }),
         };
 
