@@ -43,18 +43,20 @@ This file will be automatically generated with defaults when `flora-cli` is run 
 * `[proton]`
   * `proton_prefix_location`: Location where Wine prefixes are installed. Default is `$HOME/.local/share/flora/prefixes`.
   * `default_proton_prefix`: Default Wine prefix used for running applications. Default is `$HOME/.local/share/flora/prefixes/proton`.
-  * `default_proton_runtime`: Default Proton runtime used for running applications. Default is system wine (`/usr/bin/wine`).
+  * `default_proton_runtime`: Default Proton runtime used for running applications. Default is empty.
 
 
 Each application is configured in `.toml` files, located in `$HOME/.local/share/flora/apps` folder.
 * `type`: Choose between `Wine` for running apps in Wine or `Proton` for running apps in Proton using umu-launcher.
 * `executable_location`: The executable to be launched when using the `run` command and from the `.desktop` entry.
-* `wine_prefix` (Wine): Prefix where the app is installed.
-* `wine_runtime` (Wine): Wine runtime used to run the app.
-* `proton_prefix` (Proton): Prefix where the app is installed.
-* `proton_runtime` (Proton): Proton runtime used to run the app.
-* `game_id` (Proton): Game ID to be passed to `umu-launcher`
-* `store` (Proton): Store name to be passed to `umu-launcher`
+* Wine
+  * `wine_prefix`: Prefix where the app is installed.
+  * `wine_runtime`: Wine runtime used to run the app.
+* Proton
+  * `proton_prefix`: Prefix where the app is installed.
+  * `proton_runtime`: Proton runtime used to run the app.
+  * `game_id`: Game ID to be passed to `umu-launcher`
+  * `store`: Store name to be passed to `umu-launcher`
 
 ## CLI 
 

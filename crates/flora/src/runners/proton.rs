@@ -45,7 +45,7 @@ fn get_proton_tool(
         // Proton runtime is not defined in app config, but defined in global config
         Ok(find_proton_tool(&dirs, &proton_config.default_proton_runtime)?)
     } else {
-        // Proton runtime is not defined in app config and global config, use system wine.
+        // Proton runtime is not defined in app config and global config, keep empty.
         Ok(PathBuf::from(""))
     };
 
