@@ -4,6 +4,8 @@
 ## Usage
 * `create`: Creates an app configuration
 * `delete`: Removes an app configuration
+* `list`: Lists all app configurations
+* `show`: Show an app configuration
 * `config`: Launches the app's prefix configuration, usually `winecfg`.
 * `tricks`: Launches wine(proton)tricks for the app's prefix 
 * `run`: Runs the app or another executable using the prefix
