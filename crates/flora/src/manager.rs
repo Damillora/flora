@@ -1,4 +1,4 @@
-use std::{fs, path::{PathBuf}};
+use std::{fs, path::PathBuf};
 
 use directories::{BaseDirs, ProjectDirs};
 use log::debug;
@@ -36,8 +36,7 @@ impl FloraManager {
 
     fn read_app_config(&self, name: &String) -> Result<FloraApp, FloraError> {
         let app_config_path = self.app_path(name);
-        let config_toml =
-            fs::read_to_string(&app_config_path)?;
+        let config_toml = fs::read_to_string(&app_config_path)?;
         let config: FloraApp = toml::from_str(config_toml.as_str())?;
 
         Ok(config)
@@ -92,29 +91,63 @@ impl FloraManager {
     }
 
     /// Launches the prefix configuration dialog of an app (usually winecfg)
-    pub fn app_config(&self, name: &String, args: &Option<Vec<String>>, quiet: bool, wait: bool) -> Result<(), FloraError> {
+    pub fn app_config(
+        &self,
+        name: &String,
+        args: &Option<Vec<String>>,
+        quiet: bool,
+        wait: bool,
+    ) -> Result<(), FloraError> {
         if !self.is_app_exists(name)? {
             return Err(FloraError::AppNotFound);
         }
 
         let app_config = self.read_app_config(&name)?;
 
-        runners::run_app_config(&name, &self.flora_dirs, &self.config, &app_config, args, quiet, wait)
+        runners::run_app_config(
+            &name,
+            &self.flora_dirs,
+            &self.config,
+            &app_config,
+            args,
+            quiet,
+            wait,
+        )
     }
 
     /// Launches wine(proton)tricks inside an app's prefix
-    pub fn app_tricks(&self, name: &String, args: &Option<Vec<String>>, quiet: bool, wait: bool) -> Result<(), FloraError> {
+    pub fn app_tricks(
+        &self,
+        name: &String,
+        args: &Option<Vec<String>>,
+        quiet: bool,
+        wait: bool,
+    ) -> Result<(), FloraError> {
         if !self.is_app_exists(name)? {
             return Err(FloraError::AppNotFound);
         }
 
         let app_config = self.read_app_config(&name)?;
 
-        runners::run_app_tricks(&name, &self.flora_dirs, &self.config, &app_config, args, quiet, wait)
+        runners::run_app_tricks(
+            &name,
+            &self.flora_dirs,
+            &self.config,
+            &app_config,
+            args,
+            quiet,
+            wait,
+        )
     }
 
     /// Launches an executable inside an app's prefix
-    pub fn app_run(&self, name: &String, args: &Option<Vec<String>>, quiet: bool, wait: bool) -> Result<(), FloraError> {
+    pub fn app_run(
+        &self,
+        name: &String,
+        args: &Option<Vec<String>>,
+        quiet: bool,
+        wait: bool,
+    ) -> Result<(), FloraError> {
         if !self.is_app_exists(name)? {
             return Err(FloraError::AppNotFound);
         }
@@ -123,9 +156,17 @@ impl FloraManager {
 
         let new_args = match args {
             Some(args) => args,
-            None => &vec!(app_config.executable_location.clone()),
+            None => &vec![app_config.executable_location.clone()],
         };
-        runners::run_app_executable(&name, &self.flora_dirs, &self.config, &app_config, new_args, quiet, wait)
+        runners::run_app_executable(
+            &name,
+            &self.flora_dirs,
+            &self.config,
+            &app_config,
+            new_args,
+            quiet,
+            wait,
+        )
     }
 
     /// Creates a desktop entry for application
@@ -138,7 +179,6 @@ impl FloraManager {
 
         runners::create_desktop_entry(&name, &self.flora_dirs, &app_config)
     }
-
 }
 
 // Static functions
@@ -160,4 +200,3 @@ impl FloraManager {
         }
     }
 }
-

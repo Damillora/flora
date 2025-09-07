@@ -43,7 +43,10 @@ fn get_proton_tool(
         Ok(find_proton_tool(&dirs, &runner)?)
     } else if let Some(proton_config) = &config.proton {
         // Proton runtime is not defined in app config, but defined in global config
-        Ok(find_proton_tool(&dirs, &proton_config.default_proton_runtime)?)
+        Ok(find_proton_tool(
+            &dirs,
+            &proton_config.default_proton_runtime,
+        )?)
     } else {
         // Proton runtime is not defined in app config and global config, keep empty.
         Ok(PathBuf::from(""))
@@ -122,11 +125,7 @@ pub fn run_proton_executable(
         ensure_proton_tool(&proton_tool)?;
         ensure_proton_prefix(&proton_prefix)?;
 
-        debug!(
-            "Using {} to launch {}",
-            "umu-run",
-            args.join(" ")
-        );
+        debug!("Using {} to launch {}", "umu-run", args.join(" "));
 
         use std::process::Command;
         let mut command = Command::new("umu-run");

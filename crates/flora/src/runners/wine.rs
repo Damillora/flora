@@ -3,7 +3,11 @@ use std::{fs, path::PathBuf, process::Stdio};
 use log::{debug, info};
 
 use crate::{
-    app::{FloraApp, FloraAppType, FloraAppWineConfig}, config::FloraConfig, desktop, dirs::FloraDirs, errors::FloraError
+    app::{FloraApp, FloraAppType, FloraAppWineConfig},
+    config::FloraConfig,
+    desktop,
+    dirs::FloraDirs,
+    errors::FloraError,
 };
 
 fn get_wine_dir(

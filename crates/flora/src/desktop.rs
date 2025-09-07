@@ -4,7 +4,7 @@ use log::debug;
 
 use crate::{dirs::FloraDirs, errors::FloraError};
 
-pub(crate) fn initialize_desktop_entries(dirs: &FloraDirs) -> Result<(),FloraError>{
+pub(crate) fn initialize_desktop_entries(dirs: &FloraDirs) -> Result<(), FloraError> {
     let flora_directory = "[Desktop Entry]
     Type=Directory
     Name=Flora
@@ -26,12 +26,11 @@ pub(crate) fn initialize_desktop_entries(dirs: &FloraDirs) -> Result<(),FloraErr
     let directory_file = dirs.get_desktop_directory_file();
     debug!(
         "Writing directory entry to {}",
-
         directory_file
-        .clone()
-        .into_os_string()
-        .into_string()
-        .map_err(|_| FloraError::InternalError)?
+            .clone()
+            .into_os_string()
+            .into_string()
+            .map_err(|_| FloraError::InternalError)?
     );
 
     if !fs::exists(&directory_file)? {
@@ -41,18 +40,16 @@ pub(crate) fn initialize_desktop_entries(dirs: &FloraDirs) -> Result<(),FloraErr
     let menu_file = dirs.get_desktop_menu_file();
     debug!(
         "Writing menu entry to {}",
-
         menu_file
-        .clone()
-        .into_os_string()
-        .into_string()
-        .map_err(|_| FloraError::InternalError)?
+            .clone()
+            .into_os_string()
+            .into_string()
+            .map_err(|_| FloraError::InternalError)?
     );
 
     if !fs::exists(&menu_file)? {
         fs::write(menu_file, flora_menu).map(|_| ())?;
     }
-
 
     Ok(())
 }

@@ -42,12 +42,18 @@ impl FloraConfig {
                 wine_prefix_location: {
                     let prefixes_dir = dirs.get_prefixes_root();
 
-                    prefixes_dir.into_os_string().into_string().map_err(|_| FloraError::InternalError)?
+                    prefixes_dir
+                        .into_os_string()
+                        .into_string()
+                        .map_err(|_| FloraError::InternalError)?
                 },
                 default_wine_prefix: {
                     let prefixes_dir = dirs.get_fallback_prefix();
 
-                    prefixes_dir.into_os_string().into_string().map_err(|_| FloraError::InternalError)?
+                    prefixes_dir
+                        .into_os_string()
+                        .into_string()
+                        .map_err(|_| FloraError::InternalError)?
                 },
                 default_wine_runtime: String::from(""),
             }),
@@ -55,12 +61,18 @@ impl FloraConfig {
                 proton_prefix_location: {
                     let prefixes_dir = dirs.get_prefixes_root();
 
-                    prefixes_dir.into_os_string().into_string().map_err(|_| FloraError::InternalError)?
+                    prefixes_dir
+                        .into_os_string()
+                        .into_string()
+                        .map_err(|_| FloraError::InternalError)?
                 },
                 default_proton_prefix: {
                     let prefixes_dir = dirs.get_fallback_prefix_proton();
 
-                    prefixes_dir.into_os_string().into_string().map_err(|_| FloraError::InternalError)?
+                    prefixes_dir
+                        .into_os_string()
+                        .into_string()
+                        .map_err(|_| FloraError::InternalError)?
                 },
                 default_proton_runtime: String::from(""),
             }),
