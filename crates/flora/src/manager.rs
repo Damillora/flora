@@ -11,9 +11,7 @@ use crate::{
     config::FloraConfig,
     dirs::FloraDirs,
     errors::FloraError,
-    responses::{
-        FloraAppListItem,
-    },
+    responses::FloraAppListItem,
     runners,
 };
 
@@ -122,7 +120,6 @@ impl FloraManager {
         }
 
         let app_config = self.read_app_config(&name)?;
-
 
         Ok(FloraAppListItem::from_config(name, &app_config))
     }

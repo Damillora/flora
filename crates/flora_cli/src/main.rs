@@ -2,9 +2,17 @@ use clap::{Args, Parser, Subcommand};
 use flora::{
     app::{FloraAppOptions, FloraAppProtonOptions, FloraAppWineOptions},
     errors::FloraError,
-    manager::FloraManager, responses::FloraAppListItem,
+    manager::FloraManager,
+    responses::FloraAppListItem,
 };
-use tabled::{settings::{object::{Columns, Rows}, themes::Colorization, Alignment, Color, Style, Width}, Table, Tabled};
+use tabled::{
+    Table, Tabled,
+    settings::{
+        Alignment, Color, Style, Width,
+        object::{Columns, Rows},
+        themes::Colorization,
+    },
+};
 
 /// Manage your Wine and Proton prefixes
 #[derive(Parser)]
@@ -211,13 +219,11 @@ fn main() -> Result<(), FloraError> {
             if args.long {
                 let table_items = apps.iter().map(|item| AppTableRow::from(item));
 
-
-
                 let mut table = Table::new(table_items);
                 table.with(Style::blank());
-                table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first() ));
+                table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
                 table.modify(Columns::first(), Alignment::left());
-                table.modify(Rows::new(0..), Width::truncate(30).suffix("...") );
+                table.modify(Rows::new(0..), Width::truncate(30).suffix("..."));
 
                 println!("{}", table);
             } else {
@@ -233,14 +239,17 @@ fn main() -> Result<(), FloraError> {
                 }
             }
             Ok(())
-        },
+        }
 
         Commands::Show(args) => {
             let app = AppTableRow::from(&manager.show_app(&args.name)?);
 
-            let mut table = Table::kv(vec!(app));
+            let mut table = Table::kv(vec![app]);
             table.with(Style::blank());
-            table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Columns::first() ));
+            table.with(Colorization::exact(
+                [Color::FG_BRIGHT_BLUE],
+                Columns::first(),
+            ));
             table.modify(Columns::first(), Alignment::left());
 
             println!("{}", table);

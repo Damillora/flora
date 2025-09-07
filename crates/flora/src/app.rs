@@ -56,7 +56,6 @@ pub struct FloraAppProtonOptions {
     pub store: Option<String>,
 }
 
-
 impl FloraApp {
     /// Converts AppOptions passed from the frontend into App, which is the actual configuration used to launch apps.
     pub(crate) fn from_options(

@@ -1,6 +1,5 @@
 use crate::app::FloraApp;
 
-
 pub struct FloraAppListItem {
     pub name: String,
     pub pretty_name: String,
@@ -24,7 +23,6 @@ pub struct FloraAppProtonListItem {
     pub proton_runtime: Option<String>,
     pub game_id: Option<String>,
     pub store: Option<String>,
-
 }
 
 impl FloraAppListItem {
@@ -38,15 +36,15 @@ impl FloraAppListItem {
                 crate::app::FloraAppType::Wine(flora_app_wine_config) => {
                     FloraAppTypeListItem::Wine(FloraAppWineListItem {
                         wine_prefix: flora_app_wine_config.wine_prefix.clone(),
-                                               wine_runtime: flora_app_wine_config.wine_runtime.clone(),
+                        wine_runtime: flora_app_wine_config.wine_runtime.clone(),
                     })
                 }
                 crate::app::FloraAppType::Proton(flora_app_proton_config) => {
                     FloraAppTypeListItem::Proton(FloraAppProtonListItem {
                         proton_prefix: flora_app_proton_config.proton_prefix.clone(),
-                                                 proton_runtime: flora_app_proton_config.proton_runtime.clone(),
-                                                 game_id: flora_app_proton_config.game_id.clone(),
-                                                 store: flora_app_proton_config.store.clone(),
+                        proton_runtime: flora_app_proton_config.proton_runtime.clone(),
+                        game_id: flora_app_proton_config.game_id.clone(),
+                        store: flora_app_proton_config.store.clone(),
                     })
                 }
             },
