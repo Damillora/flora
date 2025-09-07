@@ -10,7 +10,7 @@ repository = "https://github.com/Damillora/flora"
 license = "GPL-3.0-or-later"
 
 [[bin]]
-name = "flora-cli"
+name = "flora"
 path = "src/main.rs"
 
 [dependencies]

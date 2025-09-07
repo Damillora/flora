@@ -34,7 +34,7 @@ cargo install --path crates/flora_cli
 
 flora is configured using the file `flora.toml`, located in the `$HOME/.local/share/flora` folder. 
 
-This file will be automatically generated with defaults when `flora-cli` is run for the first time.
+This file will be automatically generated with defaults when `flora` is run for the first time.
 
 * `[wine]`
   * `wine_prefix_location`: Location where Wine prefixes are installed. Default is `$HOME/.local/share/flora/prefixes`.

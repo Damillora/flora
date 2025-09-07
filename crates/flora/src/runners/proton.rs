@@ -208,7 +208,7 @@ pub fn create_desktop_entry(
 Type=Application
 Name={}
 Icon={}
-Exec=flora-cli run -w {}
+Exec=flora run -w {}
 Comment=Run {} with Flora using Proton
 Terminal=false",
         app.pretty_name, "applications-other", name, app.pretty_name
