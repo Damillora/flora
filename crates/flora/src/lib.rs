@@ -20,6 +20,11 @@ pub mod manager;
 /// Contains functions related to app configuration
 pub mod app;
 
+/// Flora response items
+///
+/// Contain response structs
+pub mod responses;
+
 /// Flora runners
 /// Contains functionality to launch apps
 mod runners;

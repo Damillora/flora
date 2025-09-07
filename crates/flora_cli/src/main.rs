@@ -2,8 +2,9 @@ use clap::{Args, Parser, Subcommand};
 use flora::{
     app::{FloraAppOptions, FloraAppProtonOptions, FloraAppWineOptions},
     errors::FloraError,
-    manager::FloraManager,
+    manager::FloraManager, responses::FloraAppListItem,
 };
+use tabled::{settings::{object::{Columns, Rows}, themes::Colorization, Alignment, Color, Style, Width}, Table, Tabled};
 
 /// Manage your Wine and Proton prefixes
 #[derive(Parser)]
@@ -19,6 +20,10 @@ pub enum Commands {
     Create(CreateArgs),
     /// Removes and app configuration
     Delete(DeleteArgs),
+    /// Lists app configurations
+    List(ListArgs),
+    /// Show app configuration
+    Show(ShowArgs),
     /// Launches app configuration dialog
     Config(RunArgs),
     /// Launches wine(proton)tricks for app
@@ -88,6 +93,18 @@ pub struct CreateProtonArgs {
 }
 
 #[derive(Args)]
+pub struct ListArgs {
+    #[arg(short = 'l', long)]
+    /// Long format of list
+    long: bool,
+}
+#[derive(Args)]
+pub struct ShowArgs {
+    /// Name of app
+    name: String,
+}
+
+#[derive(Args)]
 pub struct DeleteArgs {
     /// Name of app
     name: String,
@@ -113,6 +130,43 @@ pub struct RunArgs {
 pub struct DesktopArgs {
     /// Name of app
     name: String,
+}
+
+#[derive(Tabled)]
+#[tabled(rename_all = "Upper Title Case")]
+pub struct AppTableRow {
+    pub name: String,
+    pub pretty_name: String,
+    pub executable_location: String,
+    pub prefix: String,
+    pub runtime: String,
+    pub game_id: String,
+    pub store: String,
+}
+
+impl From<&FloraAppListItem> for AppTableRow {
+    fn from(item: &FloraAppListItem) -> Self {
+        match &item.app_type {
+            flora::responses::FloraAppTypeListItem::Wine(conf) => AppTableRow {
+                name: item.name.clone(),
+                pretty_name: item.pretty_name.clone(),
+                executable_location: item.executable_location.clone(),
+                prefix: conf.wine_prefix.clone().unwrap_or_default(),
+                runtime: conf.wine_runtime.clone().unwrap_or_default(),
+                game_id: String::new(),
+                store: String::new(),
+            },
+            flora::responses::FloraAppTypeListItem::Proton(conf) => AppTableRow {
+                name: item.name.clone(),
+                pretty_name: item.pretty_name.clone(),
+                executable_location: item.executable_location.clone(),
+                prefix: conf.proton_prefix.clone().unwrap_or_default(),
+                runtime: conf.proton_runtime.clone().unwrap_or_default(),
+                game_id: conf.game_id.clone().unwrap_or_default(),
+                store: conf.store.clone().unwrap_or_default(),
+            },
+        }
+    }
 }
 
 fn create_wine_app(manager: &FloraManager, args: &CreateWineArgs) -> Result<(), FloraError> {
@@ -152,6 +206,47 @@ fn main() -> Result<(), FloraError> {
             CreateCommands::Proton(args) => create_proton_app(&manager, args),
         },
         Commands::Delete(args) => manager.delete_app(&args.name),
+        Commands::List(args) => {
+            let apps = manager.list_app()?;
+            if args.long {
+                let table_items = apps.iter().map(|item| AppTableRow::from(item));
+
+
+
+                let mut table = Table::new(table_items);
+                table.with(Style::blank());
+                table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first() ));
+                table.modify(Columns::first(), Alignment::left());
+                table.modify(Rows::new(0..), Width::truncate(30).suffix("...") );
+
+                println!("{}", table);
+            } else {
+                for app in apps {
+                    println!(
+                        "{} ({})",
+                        app.name,
+                        match app.app_type {
+                            flora::responses::FloraAppTypeListItem::Wine(_) => "Wine",
+                            flora::responses::FloraAppTypeListItem::Proton(_) => "Proton",
+                        }
+                    )
+                }
+            }
+            Ok(())
+        },
+
+        Commands::Show(args) => {
+            let app = AppTableRow::from(&manager.show_app(&args.name)?);
+
+            let mut table = Table::kv(vec!(app));
+            table.with(Style::blank());
+            table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Columns::first() ));
+            table.modify(Columns::first(), Alignment::left());
+
+            println!("{}", table);
+
+            Ok(())
+        }
         Commands::Config(args) => manager.app_config(&args.name, &args.args, args.quiet, args.wait),
         Commands::Tricks(args) => manager.app_tricks(&args.name, &args.args, args.quiet, args.wait),
         Commands::Run(args) => manager.app_run(&args.name, &args.args, args.quiet, args.wait),

@@ -10,7 +10,6 @@ pub(crate) enum FloraAppType {
     /// Wine App
     Wine(FloraAppWineConfig),
     Proton(FloraAppProtonConfig),
-    Other,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -56,6 +55,7 @@ pub struct FloraAppProtonOptions {
     pub game_id: Option<String>,
     pub store: Option<String>,
 }
+
 
 impl FloraApp {
     /// Converts AppOptions passed from the frontend into App, which is the actual configuration used to launch apps.

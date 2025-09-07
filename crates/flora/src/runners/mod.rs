@@ -23,7 +23,6 @@ pub fn run_app_config(
         FloraAppType::Proton(_) => {
             proton::run_proton_config(name, dirs, config, app, args, quiet, wait)
         }
-        FloraAppType::Other => Ok(()),
     }
 }
 
@@ -41,7 +40,6 @@ pub fn run_app_tricks(
         FloraAppType::Proton(_) => {
             proton::run_proton_tricks(name, dirs, config, app, args, quiet, wait)
         }
-        FloraAppType::Other => Ok(()),
     }
 }
 
@@ -61,7 +59,6 @@ pub fn run_app_executable(
         FloraAppType::Proton(_) => {
             proton::run_proton_executable(name, dirs, config, app, args, quiet, wait)
         }
-        FloraAppType::Other => Ok(()),
     }
 }
 
@@ -73,6 +70,5 @@ pub fn create_desktop_entry(
     match app.app_type {
         FloraAppType::Wine(_) => wine::create_desktop_entry(name, dirs, app),
         FloraAppType::Proton(_) => proton::create_desktop_entry(name, dirs, app),
-        FloraAppType::Other => Ok(()),
     }
 }

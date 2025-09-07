@@ -19,4 +19,5 @@ env_logger = "0.11.8"
 flora = { version = "0.1.0", path = "../flora" }
 log = "0.4.28"
 serde = { version = "1.0.219", features = ["derive"] }
+tabled = "0.20.0"
 toml = { version = "0.9.5", features = ["serde"] }

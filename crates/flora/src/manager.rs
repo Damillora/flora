@@ -1,4 +1,7 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs::{self, read_dir},
+    path::PathBuf,
+};
 
 use directories::ProjectDirs;
 use log::debug;
@@ -8,6 +11,9 @@ use crate::{
     config::FloraConfig,
     dirs::FloraDirs,
     errors::FloraError,
+    responses::{
+        FloraAppListItem,
+    },
     runners,
 };
 
@@ -88,6 +94,37 @@ impl FloraManager {
         fs::remove_file(&new_app_location)?;
 
         Ok(())
+    }
+
+    pub fn list_app(&self) -> Result<Vec<FloraAppListItem>, FloraError> {
+        let app_dir = self.flora_dirs.get_app_root();
+
+        let files = read_dir(&app_dir)?;
+        let list_items = files
+            .map(|app_config_path| -> FloraAppListItem {
+                let path = app_config_path.unwrap().path();
+                let file_stem = path.file_stem().unwrap_or_default();
+                let name = file_stem.to_os_string().into_string().unwrap();
+
+                let config = self.read_app_config(&name).unwrap();
+
+                FloraAppListItem::from_config(&name, &config)
+            })
+            .collect();
+
+        Ok(list_items)
+    }
+
+    /// Deletes new Flora app
+    pub fn show_app(&self, name: &String) -> Result<FloraAppListItem, FloraError> {
+        if !self.is_app_exists(name)? {
+            return Err(FloraError::AppNotFound);
+        }
+
+        let app_config = self.read_app_config(&name)?;
+
+
+        Ok(FloraAppListItem::from_config(name, &app_config))
     }
 
     /// Launches the prefix configuration dialog of an app (usually winecfg)
