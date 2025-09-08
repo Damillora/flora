@@ -46,7 +46,7 @@ flora generate-menu
 # Run an app inside a seed
 flora run -a windows_app "Windows App"
 ```
-
+[![asciicast](https://asciinema.org/a/kX1eNGz3W2rYHppeyESZigOig.svg)](https://asciinema.org/a/kX1eNGz3W2rYHppeyESZigOig)
 
 flora can also utilize additional Wine runtimes in `~/.local/share/flora/wine`, and additional Proton runtimes in `~/.local/share/flora/proton`.
 Runtimes in those folder can be managed with tools like [ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt).
