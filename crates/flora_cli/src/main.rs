@@ -236,7 +236,7 @@ fn main() -> Result<(), FloraError> {
         Commands::List(args) => {
             let seeds = manager.list_seed()?;
             if args.long {
-                let table_items = seeds.iter().map(|item| SeedTableRow::from(item));
+                let table_items = seeds.iter().map(SeedTableRow::from);
 
                 let mut table = Table::new(table_items);
                 table.with(Style::blank());
@@ -302,7 +302,7 @@ fn main() -> Result<(), FloraError> {
                         manager.seed_run_app(&opts.name, &Some(joined_args), opts.quiet, opts.wait)
                     } else {
                         // Launch executable
-                        manager.seed_run_executable(&opts.name, &args, opts.quiet, opts.wait)
+                        manager.seed_run_executable(&opts.name, args, opts.quiet, opts.wait)
                     }
                 }
                 // Launch the default app entry if none is specified

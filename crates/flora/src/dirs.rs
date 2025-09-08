@@ -68,9 +68,9 @@ impl FloraDirs {
 
         wine_root
     }
-    pub fn get_log_file(&self, name: &String) -> Result<File, FloraError> {
+    pub fn get_log_file(&self, name: &str) -> Result<File, FloraError> {
         let mut log_file = self.get_log_root();
-        log_file.push(format!("{}.log", name.as_str()));
+        log_file.push(format!("{}.log", name));
         log::debug!(
             "Logging outputs to {}",
             log_file
@@ -92,14 +92,14 @@ impl FloraDirs {
     }
     pub fn get_desktop_directory_file(&self) -> PathBuf {
         let mut desktop_entry_location = self.applications_directory_dir.clone();
-        desktop_entry_location.push(format!("flora.directory"));
+        desktop_entry_location.push("flora.directory");
 
         desktop_entry_location
     }
 
     pub fn get_desktop_menu_file(&self) -> PathBuf {
         let mut desktop_entry_location = self.config_menu_dir.clone();
-        desktop_entry_location.push(format!("flora.menu"));
+        desktop_entry_location.push("flora.menu");
 
         desktop_entry_location
     }
@@ -107,12 +107,12 @@ impl FloraDirs {
     pub fn create_dirs(&self) {
         fs::create_dir_all(&self.flora_root).unwrap();
         fs::create_dir_all(&self.applications_entry_dir).unwrap();
-        fs::create_dir_all(&self.get_seed_root()).unwrap();
-        fs::create_dir_all(&self.get_wine_root()).unwrap();
-        fs::create_dir_all(&self.get_proton_root()).unwrap();
-        fs::create_dir_all(&self.get_log_root()).unwrap();
-        fs::create_dir_all(&self.get_prefixes_root()).unwrap();
-        fs::create_dir_all(&self.get_icons_root()).unwrap();
+        fs::create_dir_all(self.get_seed_root()).unwrap();
+        fs::create_dir_all(self.get_wine_root()).unwrap();
+        fs::create_dir_all(self.get_proton_root()).unwrap();
+        fs::create_dir_all(self.get_log_root()).unwrap();
+        fs::create_dir_all(self.get_prefixes_root()).unwrap();
+        fs::create_dir_all(self.get_icons_root()).unwrap();
     }
 }
 
@@ -133,11 +133,11 @@ impl FloraDirs {
         steam_compat_dir.push("Steam/compatibilitytools.d");
 
         Self {
-            flora_root: flora_root,
-            applications_entry_dir: applications_entry_dir,
-            applications_directory_dir: applications_directory_dir,
-            config_menu_dir: config_menu_dir,
-            steam_compat_dir: steam_compat_dir,
+            flora_root,
+            applications_entry_dir,
+            applications_directory_dir,
+            config_menu_dir,
+            steam_compat_dir,
         }
     }
 }

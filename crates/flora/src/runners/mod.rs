@@ -10,7 +10,7 @@ pub mod proton;
 pub mod wine;
 
 pub fn run_seed_config(
-    name: &String,
+    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,
@@ -29,7 +29,7 @@ pub fn run_seed_config(
 }
 
 pub fn run_seed_tricks(
-    name: &String,
+    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,
@@ -48,7 +48,7 @@ pub fn run_seed_tricks(
 }
 
 pub fn run_seed_executable(
-    name: &String,
+    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,

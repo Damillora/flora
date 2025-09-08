@@ -11,7 +11,7 @@ use crate::{
 };
 
 fn get_wine_dir(dirs: &FloraDirs, config: &FloraConfig, wine_seed: &FloraWineSeed) -> PathBuf {
-    let wine_dir = if let Some(runner) = &wine_seed.wine_runtime {
+    if let Some(runner) = &wine_seed.wine_runtime {
         // Wine runtime is defined in seed.
         // Use Wine runtime defined in seed.
         let mut wine_path = dirs.get_wine_root();
@@ -27,13 +27,11 @@ fn get_wine_dir(dirs: &FloraDirs, config: &FloraConfig, wine_seed: &FloraWineSee
         // Wine runtime is not defined in seed and globally.
         // Use system wine in /usr
         PathBuf::from("/usr")
-    };
-
-    wine_dir
+    }
 }
 
 fn get_wine_prefix(dirs: &FloraDirs, config: &FloraConfig, wine_seed: &FloraWineSeed) -> PathBuf {
-    let wine_prefix = if let Some(path) = &wine_seed.wine_prefix {
+    if let Some(path) = &wine_seed.wine_prefix {
         // Prefix is defined in seed
         // Use prefix defined in seed.
         PathBuf::from(path.clone())
@@ -44,10 +42,8 @@ fn get_wine_prefix(dirs: &FloraDirs, config: &FloraConfig, wine_seed: &FloraWine
     } else {
         // Prefix is not defined in seed and default prefix is not set.
         // Use a well-known fallback prefix directory.
-        PathBuf::from(dirs.get_fallback_prefix())
-    };
-
-    wine_prefix
+        dirs.get_fallback_prefix()
+    }
 }
 
 fn ensure_wine_dir(wine_dir: &PathBuf) -> Result<(), FloraError> {
@@ -60,7 +56,7 @@ fn ensure_wine_dir(wine_dir: &PathBuf) -> Result<(), FloraError> {
             .map_err(|_| FloraError::InternalError)?
     );
 
-    if !fs::exists(&wine_dir)? {
+    if !fs::exists(wine_dir)? {
         return Err(FloraError::MissingRunner);
     }
 
@@ -77,7 +73,7 @@ fn ensure_wine_prefix(wine_prefix: &PathBuf) -> Result<(), FloraError> {
             .map_err(|_| FloraError::InternalError)?
     );
 
-    if !fs::exists(&wine_prefix)? {
+    if !fs::exists(wine_prefix)? {
         info!("Prefix not found, but will be created at launch");
     }
 
@@ -86,7 +82,7 @@ fn ensure_wine_prefix(wine_prefix: &PathBuf) -> Result<(), FloraError> {
 
 /// Run something in wine
 pub fn run_wine_executable(
-    name: &String,
+    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,
@@ -94,9 +90,9 @@ pub fn run_wine_executable(
     quiet: bool,
     wait: bool,
 ) -> Result<(), FloraError> {
-    if let FloraSeedType::Wine(wine_config) = &seed.seed_type {
-        let wine_dir = get_wine_dir(&dirs, &config, &wine_config);
-        let wine_prefix = get_wine_prefix(&dirs, &config, &wine_config);
+    if let FloraSeedType::Wine(wine_seed) = &seed.seed_type {
+        let wine_dir = get_wine_dir(dirs, config, wine_seed);
+        let wine_prefix = get_wine_prefix(dirs, config, wine_seed);
 
         ensure_wine_dir(&wine_dir)?;
         ensure_wine_prefix(&wine_prefix)?;
@@ -123,8 +119,8 @@ pub fn run_wine_executable(
         let mut command = Command::new(wine_exe);
         command.env("WINEPREFIX", wine_prefix).args(args);
         if quiet {
-            let log_out = dirs.get_log_file(&name)?;
-            let log_err = dirs.get_log_file(&name)?;
+            let log_out = dirs.get_log_file(name)?;
+            let log_err = dirs.get_log_file(name)?;
             command.stdin(Stdio::null()).stdout(log_out).stderr(log_err);
         }
 
@@ -141,7 +137,7 @@ pub fn run_wine_executable(
 
 /// Run tricks
 pub fn run_wine_tricks(
-    name: &String,
+    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,
@@ -149,9 +145,9 @@ pub fn run_wine_tricks(
     quiet: bool,
     wait: bool,
 ) -> Result<(), FloraError> {
-    if let FloraSeedType::Wine(wine_config) = &seed.seed_type {
-        let wine_dir = get_wine_dir(&dirs, &config, &wine_config);
-        let wine_prefix = get_wine_prefix(&dirs, &config, &wine_config);
+    if let FloraSeedType::Wine(wine_seed) = &seed.seed_type {
+        let wine_dir = get_wine_dir(dirs, config, wine_seed);
+        let wine_prefix = get_wine_prefix(dirs, config, wine_seed);
 
         ensure_wine_dir(&wine_dir)?;
         ensure_wine_prefix(&wine_prefix)?;
@@ -181,8 +177,8 @@ pub fn run_wine_tricks(
             .arg("-q");
 
         if quiet {
-            let log_out = dirs.get_log_file(&name)?;
-            let log_err = dirs.get_log_file(&name)?;
+            let log_out = dirs.get_log_file(name)?;
+            let log_err = dirs.get_log_file(name)?;
             command.stdin(Stdio::null()).stdout(log_out).stderr(log_err);
         }
 
@@ -201,7 +197,7 @@ pub fn run_wine_tricks(
 }
 
 pub fn run_wine_config(
-    name: &String,
+    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,
@@ -224,7 +220,7 @@ pub fn create_desktop_entry(
     seed: &FloraSeed,
 ) -> Result<(), FloraError> {
     // Initialize menus
-    desktop::initialize_desktop_entries(&dirs)?;
+    desktop::initialize_desktop_entries(dirs)?;
 
     for app in seed.apps.iter() {
         // Create desktop entry files
@@ -244,7 +240,7 @@ Terminal=false",
             app.application_name
         );
 
-        let desktop_entry_location = dirs.get_desktop_entry_file(&name, &app.application_name);
+        let desktop_entry_location = dirs.get_desktop_entry_file(name, &app.application_name);
 
         debug!(
             "Writing {} desktop entry to {}",
