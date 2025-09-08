@@ -23,7 +23,7 @@ Grab the latest binary from the [Releases](https://github.com/Damillora/flora) p
 flora is built and tested against latest Rust.
 
 ```sh
-git clone https://git.nanao.moe/Damillora/flora.git
+git clone https://github.com/Damillora/flora.git
 cd flora
 cargo install --path crates/flora_cli
 ```
