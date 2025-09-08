@@ -79,7 +79,6 @@ pub fn create_desktop_entry(
 }
 
 pub fn get_start_menu_entry_location(
-    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,
@@ -87,10 +86,10 @@ pub fn get_start_menu_entry_location(
 ) -> Result<String, crate::errors::FloraError> {
     match seed.seed_type {
         FloraSeedType::Wine(_) => {
-            wine::find_start_menu_entry_location(name, dirs, config, seed, menu_name)
+            wine::find_start_menu_entry_location(dirs, config, seed, menu_name)
         }
         FloraSeedType::Proton(_) => {
-            proton::find_start_menu_entry_location(name, dirs, config, seed, menu_name)
+            proton::find_start_menu_entry_location(dirs, config, seed, menu_name)
         }
     }
 }

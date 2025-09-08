@@ -10,6 +10,7 @@ use crate::{
     dirs::FloraDirs,
     errors::FloraError,
     seed::{FloraProtonSeed, FloraSeed, FloraSeedType},
+    winepath,
 };
 
 fn find_proton_tool(dirs: &FloraDirs, name: &String) -> Result<PathBuf, FloraError> {
@@ -124,63 +125,15 @@ fn get_start_menu_dir(
 
     proton_prefix
 }
-
-fn winepath_windows(
-    name: &str,
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-    path: &String,
-) -> Result<String, FloraError> {
-    // Use winepath to get Windows location
-    let mut winepath = run_proton_executable_value(
-        name,
-        dirs,
-        config,
-        seed,
-        &vec![
-            String::from("winepath"),
-            String::from("--windows"),
-            path.to_string(),
-        ],
-    )?;
-    winepath = winepath.trim().to_string();
-
-    Ok(winepath)
-}
-
-fn winepath_unix(
-    name: &str,
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-    path: &String,
-) -> Result<String, FloraError> {
-    // Use winepath to get Windows location
-    let mut winepath = run_proton_executable_value(
-        name,
-        dirs,
-        config,
-        seed,
-        &vec![
-            String::from("winepath"),
-            String::from("--unix"),
-            path.to_string(),
-        ],
-    )?;
-    winepath = winepath.trim().to_string();
-
-    Ok(winepath)
-}
-
 pub fn find_start_menu_entry_location(
-    name: &str,
     dirs: &FloraDirs,
     config: &FloraConfig,
     seed: &FloraSeed,
     menu_name: &String,
 ) -> Result<String, FloraError> {
     if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
+        let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
+
         let start_menu_dir = get_start_menu_dir(dirs, config, proton_seed);
 
         for entry in WalkDir::new(start_menu_dir)
@@ -193,7 +146,7 @@ pub fn find_start_menu_entry_location(
                 debug!("Found Start Menu item: {}", entry.path().display());
                 let path = String::from(entry.path().to_str().unwrap_or_default());
 
-                let winepath = winepath_windows(name, dirs, config, seed, &path)?;
+                let winepath = winepath::unix_to_windows(&proton_prefix, &PathBuf::from(path));
 
                 debug!("Winepath: {}", winepath);
                 return Ok(winepath);
@@ -201,52 +154,6 @@ pub fn find_start_menu_entry_location(
         }
 
         Err(FloraError::StartMenuNotFound)
-    } else {
-        Err(FloraError::IncorrectRunner)
-    }
-}
-
-/// Run something in wine
-fn run_proton_executable_value(
-    name: &str,
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-    args: &Vec<String>,
-) -> Result<String, FloraError> {
-    if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
-        let proton_tool = get_proton_tool(dirs, config, proton_seed)?;
-        let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
-
-        ensure_proton_tool(&proton_tool)?;
-        ensure_proton_prefix(&proton_prefix)?;
-
-        debug!("Using {} to launch {}", "umu-run", args.join(" "));
-
-        use std::process::Command;
-        let mut command = Command::new("umu-run");
-        command
-            .env("WINEPREFIX", proton_prefix)
-            .env("PROTONPATH", proton_tool)
-            // Trim args to clean up null values from parameters
-            .args(args);
-
-        if let Some(game_id) = &proton_seed.game_id {
-            command.env("GAMEID", game_id);
-        }
-        if let Some(store) = &proton_seed.store {
-            command.env("STORE", store);
-        }
-        let log_err = dirs.get_log_file(name)?;
-        command.stdin(Stdio::null()).stderr(log_err);
-
-        let output = command.output().unwrap();
-        let result = String::from_utf8(output.stdout)
-            .map_err(|_| FloraError::InternalError)?
-            .trim()
-            .to_string();
-
-        Ok(result)
     } else {
         Err(FloraError::IncorrectRunner)
     }
@@ -344,74 +251,90 @@ pub fn create_desktop_entry(
     config: &FloraConfig,
     seed: &FloraSeed,
 ) -> Result<(), FloraError> {
-    // Initialize menus
-    desktop::initialize_desktop_entries(dirs)?;
+    if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
+        let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
+        // Initialize menus
+        desktop::initialize_desktop_entries(dirs)?;
 
-    for app in seed.apps.iter() {
-        // Get link path
-        let target_linux_path = winepath_unix(name, dirs, config, seed, &app.application_location)?;
+        for app in seed.apps.iter() {
+            // Get link path
+            let target_linux_path =
+                winepath::windows_to_unix(&proton_prefix, &app.application_location);
 
-        let exe_find = flora_icon::find_lnk_exe_location(&PathBuf::from(target_linux_path))?;
+            let exe_find = flora_icon::find_lnk_exe_location(&target_linux_path)?;
 
-        let icon_path = dirs.get_icon_file(name, &app.application_name);
-        let mut icon_name = String::from("applications-other");
+            let icon_path = dirs.get_icon_file(name, &app.application_name);
+            let mut icon_name = String::from("applications-other");
 
-        if let FloraLink::WindowsIco(ico_path) = exe_find {
-            let windows_ico_path = winepath_unix(name, dirs, config, seed, &ico_path)?;
-            debug!("We got icon from {}", &windows_ico_path);
-
-            flora_icon::extract_icon_from_ico(&icon_path, &PathBuf::from(&windows_ico_path))?;
-            icon_name = icon_path.into_os_string().into_string().unwrap_or_default()
-        } else {
-            debug!("No icon location, search exe for icons");
-            let exe_location = match exe_find {
-                FloraLink::LinuxExe(path) => path,
-                FloraLink::WindowsExe(path) => {
-                    PathBuf::from(winepath_unix(name, dirs, config, seed, &path)?)
-                }
-                _ => panic!("Windows ICO should be handled in the former case!"),
-            };
-
-            if flora_icon::extract_icon_from_exe(&icon_path, &exe_location)? {
+            if let FloraLink::WindowsIco(ico_path) = exe_find {
+                let windows_ico_path = winepath::windows_to_unix(&proton_prefix, &ico_path);
                 debug!(
                     "We got icon from {}",
-                    exe_location
+                    &windows_ico_path
                         .clone()
                         .into_os_string()
                         .into_string()
-                        .unwrap_or_default()
+                        .unwrap()
                 );
-                icon_name = icon_path.into_os_string().into_string().unwrap_or_default()
-            };
-        }
 
-        // Create desktop entry files
-        let desktop_entry = format!(
-            "[Desktop Entry]
+                flora_icon::extract_icon_from_ico(&icon_path, &PathBuf::from(&windows_ico_path))?;
+                icon_name = icon_path.into_os_string().into_string().unwrap_or_default()
+            } else {
+                debug!("No icon location, search exe for icons");
+                let exe_location = match exe_find {
+                    FloraLink::LinuxExe(path) => path,
+                    FloraLink::WindowsExe(path) => winepath::windows_to_unix(&proton_prefix, &path),
+                    _ => panic!("Windows ICO should be handled in the former case!"),
+                };
+
+                if flora_icon::extract_icon_from_exe(&icon_path, &exe_location)? {
+                    debug!(
+                        "We got icon from {}",
+                        exe_location
+                            .clone()
+                            .into_os_string()
+                            .into_string()
+                            .unwrap_or_default()
+                    );
+                    icon_name = icon_path.into_os_string().into_string().unwrap_or_default()
+                };
+            }
+
+            // Create desktop entry files
+            let desktop_entry = format!(
+                r#"[Desktop Entry]
 Type=Application
 Categories=X-Flora
 Name={}
 Icon={}
 Exec=flora run -a -w {} \"{}\"
 Comment=Run {} with Flora (Proton seed {})
-Terminal=false",
-            app.application_name, icon_name, name, app.application_name, app.application_name, name
-        );
+Terminal=false"#,
+                app.application_name,
+                icon_name,
+                name,
+                app.application_name,
+                app.application_name,
+                name
+            );
 
-        let desktop_entry_location = dirs.get_desktop_entry_file(name, &app.application_name);
+            let desktop_entry_location = dirs.get_desktop_entry_file(name, &app.application_name);
 
-        debug!(
-            "Writing {} desktop entry to {}",
-            name,
-            desktop_entry_location
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+            debug!(
+                "Writing {} desktop entry to {}",
+                name,
+                desktop_entry_location
+                    .clone()
+                    .into_os_string()
+                    .into_string()
+                    .map_err(|_| FloraError::InternalError)?
+            );
 
-        fs::write(desktop_entry_location, desktop_entry)?;
+            fs::write(desktop_entry_location, desktop_entry)?;
+        }
+
+        Ok(())
+    } else {
+        Err(FloraError::IncorrectRunner)
     }
-
-    Ok(())
 }

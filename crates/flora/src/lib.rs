@@ -29,3 +29,6 @@ pub mod responses;
 /// Flora runners
 /// Contains functionality to launch seeds
 mod runners;
+
+/// Blazingly fast winepath
+mod winepath;

@@ -150,7 +150,6 @@ impl FloraManager {
         let seed_config = self.read_seed(name)?;
 
         let start_menu_location = runners::get_start_menu_entry_location(
-            name,
             &self.flora_dirs,
             &self.config,
             &seed_config,
