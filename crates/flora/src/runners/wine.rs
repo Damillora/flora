@@ -20,11 +20,17 @@ fn get_wine_dir(dirs: &FloraDirs, config: &FloraConfig, wine_seed: &FloraWineSee
         wine_path.push(runner);
         PathBuf::from(&wine_path)
     } else if let Some(wine_config) = &config.wine {
-        // Wine runtime is not defined in seed, but defined globally.
-        // Use Wine runtime defined in global configuration
-        let mut wine_path = dirs.get_wine_root();
-        wine_path.push(wine_config.default_wine_runtime.clone());
-        PathBuf::from(&wine_path)
+        if let Some(default_wine_runtime) = &wine_config.default_wine_runtime
+            && !default_wine_runtime.is_empty()
+        {
+            // Wine runtime is not defined in seed, but defined globally.
+            // Use Wine runtime defined in global configuration
+            let mut wine_path = dirs.get_wine_root();
+            wine_path.push(default_wine_runtime.clone());
+            PathBuf::from(&wine_path)
+        } else {
+            PathBuf::from("/usr")
+        }
     } else {
         // Wine runtime is not defined in seed and globally.
         // Use system wine in /usr

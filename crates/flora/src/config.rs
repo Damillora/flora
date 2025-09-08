@@ -16,7 +16,7 @@ pub struct FloraWineConfig {
 
     pub default_wine_prefix: String,
 
-    pub default_wine_runtime: String,
+    pub default_wine_runtime: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -55,7 +55,7 @@ impl FloraConfig {
                         .into_string()
                         .map_err(|_| FloraError::InternalError)?
                 },
-                default_wine_runtime: String::from(""),
+                default_wine_runtime: None,
             }),
             proton: Some(FloraProtonConfig {
                 proton_prefix_location: {
