@@ -77,7 +77,7 @@ impl FloraManager {
                 .map_err(|_| FloraError::InternalError)?
         );
 
-        let new_seed = FloraSeed::from_options(&self.config, name, seed_opts)?;
+        let new_seed = FloraSeed::from_options(&self.config, seed_opts)?;
         let new_toml = toml::to_string(&new_seed).map_err(|_| FloraError::InternalError)?;
 
         // Write the content to the file

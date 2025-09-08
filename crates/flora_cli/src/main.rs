@@ -28,16 +28,8 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Creates a seed
-    Create(CreateOpts),
-    /// Set a seed's properties
-    Set(SetOpts),
-    /// Removes a seed
-    Delete(DeleteOpts),
-    /// Lists seeds
-    List(ListOpts),
-    /// Show a seed's configuration
-    Show(ShowOpts),
+    /// Manage seeds
+    Seed(SeedOpts),
     /// Manage apps in a seed
     App(AppOpts),
     /// Launches a configuration tool inside the seed's prefix
@@ -48,6 +40,26 @@ pub enum Commands {
     Run(RunOpts),
     /// Creates a .desktop entry to launch applications inside a seed from the application menu
     Desktop(DesktopArgs),
+}
+
+#[derive(Args)]
+pub struct SeedOpts {
+    #[command(subcommand)]
+    commands: SeedCommands,
+}
+
+#[derive(Subcommand)]
+pub enum SeedCommands {
+    /// Creates a seed
+    Create(CreateOpts),
+    /// Set a seed's properties
+    Set(SetOpts),
+    /// Removes a seed
+    Delete(DeleteOpts),
+    /// Lists seeds
+    List(ListOpts),
+    /// Shows a seed's configuration
+    Info(InfoOpts),
 }
 
 #[derive(Args)]
@@ -172,7 +184,7 @@ pub struct ListOpts {
     long: bool,
 }
 #[derive(Args)]
-pub struct ShowOpts {
+pub struct InfoOpts {
     /// Name of seed
     name: String,
 }
@@ -326,12 +338,17 @@ impl From<&FloraSeedAppItem> for SeedAppTableRow {
 
 fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::WineOptions(FloraCreateWineSeed {
-        default_application_name: args.seed.default_application_name.clone(),
-        default_application_location: args
-            .seed
-            .default_application_location
-            .clone()
-            .unwrap_or_default(),
+        default_application: match args.seed.default_application_name {
+            Some(_) => Some(FloraCreateSeedApp {
+                application_name: args.seed.default_application_name.clone().unwrap(),
+                application_location: args
+                    .seed
+                    .default_application_location
+                    .clone()
+                    .unwrap_or_default(),
+            }),
+            None => None,
+        },
 
         wine_prefix: args.wine_prefix.clone(),
         wine_runner: args.wine_runtime.clone(),
@@ -342,12 +359,17 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
 
 fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::ProtonOptions(FloraCreateProtonSeed {
-        default_application_name: args.seed.default_application_name.clone(),
-        default_application_location: args
-            .seed
-            .default_application_location
-            .clone()
-            .unwrap_or_default(),
+        default_application: match args.seed.default_application_name {
+            Some(_) => Some(FloraCreateSeedApp {
+                application_name: args.seed.default_application_name.clone().unwrap(),
+                application_location: args
+                    .seed
+                    .default_application_location
+                    .clone()
+                    .unwrap_or_default(),
+            }),
+            None => None,
+        },
 
         proton_prefix: args.proton_prefix.clone(),
         proton_runtime: args.proton_runtime.clone(),
@@ -385,91 +407,70 @@ fn main() -> Result<(), FloraError> {
     let manager = FloraManager::new();
 
     match &cli.command {
-        Commands::Create(create_opts) => match &create_opts.commands {
-            CreateCommands::Wine(args) => create_wine_seed(&manager, args),
-            CreateCommands::Proton(args) => create_proton_seed(&manager, args),
-        },
-        Commands::Set(create_opts) => match &create_opts.commands {
-            SetCommands::Wine(args) => set_wine_seed(&manager, args),
-            SetCommands::Proton(args) => set_proton_seed(&manager, args),
-        },
-        Commands::Delete(args) => manager.delete_seed(&args.name),
-        Commands::List(args) => {
-            let seeds = manager.list_seed()?;
-            if args.long {
-                let table_items = seeds.iter().map(SeedTableRow::from);
+        Commands::Seed(opts) => match &opts.commands {
+            SeedCommands::Create(create_opts) => match &create_opts.commands {
+                CreateCommands::Wine(args) => create_wine_seed(&manager, args),
+                CreateCommands::Proton(args) => create_proton_seed(&manager, args),
+            },
+            SeedCommands::Set(create_opts) => match &create_opts.commands {
+                SetCommands::Wine(args) => set_wine_seed(&manager, args),
+                SetCommands::Proton(args) => set_proton_seed(&manager, args),
+            },
+            SeedCommands::Delete(args) => manager.delete_seed(&args.name),
+            SeedCommands::List(args) => {
+                let seeds = manager.list_seed()?;
+                if args.long {
+                    let table_items = seeds.iter().map(SeedTableRow::from);
 
-                let mut table = Table::new(table_items);
-                table.with(Style::blank());
-                table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
-                table.modify(Columns::first(), Alignment::left());
+                    let mut table = Table::new(table_items);
+                    table.with(Style::blank());
+                    table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
+                    table.modify(Columns::first(), Alignment::left());
 
-                println!("{}", table);
-            } else {
-                for seed in seeds {
-                    println!(
-                        "{} ({})",
-                        seed.name,
-                        match seed.seed_type {
-                            flora::responses::FloraSeedTypeItem::Wine(_) => "Wine",
-                            flora::responses::FloraSeedTypeItem::Proton(_) => "Proton",
-                        }
-                    )
+                    println!("{}", table);
+                } else {
+                    for seed in seeds {
+                        println!(
+                            "{} ({})",
+                            seed.name,
+                            match seed.seed_type {
+                                flora::responses::FloraSeedTypeItem::Wine(_) => "Wine",
+                                flora::responses::FloraSeedTypeItem::Proton(_) => "Proton",
+                            }
+                        )
+                    }
                 }
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Show(args) => {
-            let seed = manager.show_seed(&args.name)?;
-            let seed_table = SeedTableRow::from(&seed);
+            SeedCommands::Info(args) => {
+                let seed = manager.show_seed(&args.name)?;
+                let seed_table = SeedTableRow::from(&seed);
 
-            let mut table = Table::kv(vec![seed_table]);
-            table.with(Style::blank());
-            table.with(Colorization::exact(
-                [Color::FG_BRIGHT_BLUE],
-                Columns::first(),
-            ));
-            table.modify(Columns::first(), Alignment::left());
-
-            println!("{}", table);
-            println!("List of apps:");
-            for app in seed.apps {
-                let app_table = SeedAppTableRow::from(&app);
-                let mut table = Table::kv(vec![app_table]);
+                let mut table = Table::kv(vec![seed_table]);
                 table.with(Style::blank());
                 table.with(Colorization::exact(
                     [Color::FG_BRIGHT_BLUE],
                     Columns::first(),
                 ));
                 table.modify(Columns::first(), Alignment::left());
-                println!("{}", table);
-            }
 
-            Ok(())
-        }
-        Commands::Config(args) => {
-            manager.seed_config(&args.name, &args.args, args.quiet, args.wait)
-        }
-        Commands::Tricks(args) => {
-            manager.seed_tricks(&args.name, &args.args, args.quiet, args.wait)
-        }
-        Commands::Run(opts) => {
-            match &opts.args {
-                Some(args) => {
-                    if opts.app {
-                        // Launch an app entry
-                        let joined_args = args.join(" ").to_string();
-                        manager.seed_run_app(&opts.name, &Some(joined_args), opts.quiet, opts.wait)
-                    } else {
-                        // Launch executable
-                        manager.seed_run_executable(&opts.name, args, opts.quiet, opts.wait)
-                    }
+                println!("{}", table);
+                println!("List of apps:");
+                for app in seed.apps {
+                    let app_table = SeedAppTableRow::from(&app);
+                    let mut table = Table::kv(vec![app_table]);
+                    table.with(Style::blank());
+                    table.with(Colorization::exact(
+                        [Color::FG_BRIGHT_BLUE],
+                        Columns::first(),
+                    ));
+                    table.modify(Columns::first(), Alignment::left());
+                    println!("{}", table);
                 }
-                // Launch the default app entry if none is specified
-                None => manager.seed_run_app(&opts.name, &None, opts.quiet, opts.wait),
+
+                Ok(())
             }
-        }
-        Commands::Desktop(args) => manager.create_desktop_entry(&args.name),
+        },
         Commands::App(app_opts) => match &app_opts.commands {
             AppCommands::List(app_list_opts) => {
                 let seed = manager.show_seed(&app_list_opts.seed.name)?;
@@ -517,5 +518,28 @@ fn main() -> Result<(), FloraError> {
                 })],
             ),
         },
+        Commands::Config(args) => {
+            manager.seed_config(&args.name, &args.args, args.quiet, args.wait)
+        }
+        Commands::Tricks(args) => {
+            manager.seed_tricks(&args.name, &args.args, args.quiet, args.wait)
+        }
+        Commands::Run(opts) => {
+            match &opts.args {
+                Some(args) => {
+                    if opts.app {
+                        // Launch an app entry
+                        let joined_args = args.join(" ").to_string();
+                        manager.seed_run_app(&opts.name, &Some(joined_args), opts.quiet, opts.wait)
+                    } else {
+                        // Launch executable
+                        manager.seed_run_executable(&opts.name, args, opts.quiet, opts.wait)
+                    }
+                }
+                // Launch the default app entry if none is specified
+                None => manager.seed_run_app(&opts.name, &None, opts.quiet, opts.wait),
+            }
+        }
+        Commands::Desktop(args) => manager.create_desktop_entry(&args.name),
     }
 }

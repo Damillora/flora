@@ -28,15 +28,13 @@ pub struct FloraDeleteSeedApp {
 }
 
 pub struct FloraCreateWineSeed {
-    pub default_application_name: Option<String>,
-    pub default_application_location: String,
+    pub default_application: Option<FloraCreateSeedApp>,
     pub wine_prefix: Option<String>,
     pub wine_runner: Option<String>,
 }
 
 pub struct FloraCreateProtonSeed {
-    pub default_application_name: Option<String>,
-    pub default_application_location: String,
+    pub default_application: Option<FloraCreateSeedApp>,
     pub proton_prefix: Option<String>,
     pub proton_runtime: Option<String>,
     pub game_id: Option<String>,

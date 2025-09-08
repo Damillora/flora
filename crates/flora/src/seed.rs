@@ -159,7 +159,6 @@ impl FloraSeed {
     /// Converts Options passed from the frontend into a Seed, the actual configuration format used to launch Flora seeds.
     pub(crate) fn from_options(
         config: &FloraConfig,
-        name: &String,
         seed_opts: &FloraCreateSeed,
     ) -> Result<FloraSeed, FloraError> {
         // Wine config must be set up in flora.toml first
@@ -167,13 +166,19 @@ impl FloraSeed {
             FloraCreateSeed::WineOptions(opts) => {
                 if let Some(wine_opts) = &config.wine {
                     Ok(FloraSeed {
-                        apps: vec![FloraSeedApp {
-                            application_name: match &opts.default_application_name {
-                                Some(pretty_name) => pretty_name.to_owned(),
-                                None => name.to_owned(),
-                            },
-                            application_location: opts.default_application_location.to_owned(),
-                        }],
+                        apps: match &opts.default_application {
+                            Some(default_application) => {
+                                vec![FloraSeedApp {
+                                    application_name: default_application
+                                        .application_name
+                                        .to_owned(),
+                                    application_location: default_application
+                                        .application_location
+                                        .to_owned(),
+                                }]
+                            }
+                            None => vec![],
+                        },
 
                         seed_type: FloraSeedType::Wine(FloraWineSeed {
                             wine_prefix: {
@@ -210,13 +215,20 @@ impl FloraSeed {
             FloraCreateSeed::ProtonOptions(opts) => {
                 if let Some(proton_opts) = &config.proton {
                     Ok(FloraSeed {
-                        apps: vec![FloraSeedApp {
-                            application_name: match &opts.default_application_name {
-                                Some(pretty_name) => pretty_name.to_owned(),
-                                None => name.to_owned(),
-                            },
-                            application_location: opts.default_application_location.to_owned(),
-                        }],
+                        apps: match &opts.default_application {
+                            Some(default_application) => {
+                                vec![FloraSeedApp {
+                                    application_name: default_application
+                                        .application_name
+                                        .to_owned(),
+                                    application_location: default_application
+                                        .application_location
+                                        .to_owned(),
+                                }]
+                            }
+                            None => vec![],
+                        },
+
                         seed_type: FloraSeedType::Proton(FloraProtonSeed {
                             proton_prefix: match opts.proton_prefix.to_owned() {
                                 None => Some(proton_opts.default_proton_prefix.clone()),
