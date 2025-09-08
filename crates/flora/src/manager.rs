@@ -39,7 +39,7 @@ impl FloraManager {
         Ok(result)
     }
 
-    fn read_seed_config(&self, name: &String) -> Result<FloraSeed, FloraError> {
+    fn read_seed(&self, name: &String) -> Result<FloraSeed, FloraError> {
         let seed_path = self.seed_path(name);
         let seed_toml = fs::read_to_string(&seed_path)?;
         let seed: FloraSeed = toml::from_str(seed_toml.as_str())?;
@@ -102,7 +102,7 @@ impl FloraManager {
                 .map_err(|_| FloraError::InternalError)?
         );
 
-        let mut seed_config = self.read_seed_config(name)?;
+        let mut seed_config = self.read_seed(name)?;
         seed_config.merge_options(upd_data)?;
 
         self.write_seed_config(name, &seed_config)?;
@@ -130,7 +130,7 @@ impl FloraManager {
                 .map_err(|_| FloraError::InternalError)?
         );
 
-        let mut seed_config = self.read_seed_config(name)?;
+        let mut seed_config = self.read_seed(name)?;
         seed_config.update_apps(upd_data)?;
 
         self.write_seed_config(name, &seed_config)?;
@@ -147,7 +147,7 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed_config(name)?;
+        let seed_config = self.read_seed(name)?;
 
         let start_menu_location = runners::get_start_menu_entry_location(
             name,
@@ -196,7 +196,7 @@ impl FloraManager {
                 let file_stem = path.file_stem().unwrap_or_default();
                 let name = file_stem.to_os_string().into_string().unwrap();
 
-                let config = self.read_seed_config(&name).unwrap();
+                let config = self.read_seed(&name).unwrap();
 
                 FloraSeedItem::from_config(&name, &config)
             })
@@ -211,7 +211,7 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed_config(name)?;
+        let seed_config = self.read_seed(name)?;
 
         Ok(FloraSeedItem::from_config(name, &seed_config))
     }
@@ -228,7 +228,7 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed_config(name)?;
+        let seed_config = self.read_seed(name)?;
 
         runners::run_seed_config(
             name,
@@ -253,7 +253,7 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed_config(name)?;
+        let seed_config = self.read_seed(name)?;
 
         runners::run_seed_tricks(
             name,
@@ -277,7 +277,7 @@ impl FloraManager {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound);
         }
-        let seed_config = self.read_seed_config(name)?;
+        let seed_config = self.read_seed(name)?;
 
         let app_entry = match &app_name {
             Some(app_name) => seed_config
@@ -317,7 +317,7 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed_config(name)?;
+        let seed_config = self.read_seed(name)?;
 
         // Determine arguments to be passed to runner
         let new_args = args;
@@ -334,14 +334,23 @@ impl FloraManager {
     }
 
     /// Creates a desktop entry for seed
-    pub fn create_desktop_entry(&self, name: &String) -> Result<(), FloraError> {
-        if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+    pub fn create_desktop_entry(&self) -> Result<(), FloraError> {
+        let seed_dir = self.flora_dirs.get_seed_root();
+
+        let files = read_dir(&seed_dir)?;
+        for seed_config_path in files {
+            let path = seed_config_path.unwrap().path();
+            let file_stem = path.file_stem().unwrap_or_default();
+            let name = file_stem.to_os_string().into_string().unwrap();
+
+            let seed = self.read_seed(&name).unwrap();
+
+            debug!("Generating menu entries for seed {}", name);
+
+            runners::create_desktop_entry(&name, &self.flora_dirs, &self.config, &seed)?;
         }
 
-        let seed_config = self.read_seed_config(name)?;
-
-        runners::create_desktop_entry(name, &self.flora_dirs, &self.config, &seed_config)
+        Ok(())
     }
 }
 

@@ -32,14 +32,14 @@ pub enum Commands {
     Seed(SeedOpts),
     /// Manage apps in a seed
     App(AppOpts),
-    /// Launches a configuration tool inside the seed's prefix
+    /// Launches the seed's prefix configuration, usually winecfg.
     Config(RunOpts),
-    /// Launches wine(proton)tricks for a seed's prefix
+    /// Launches winetricks for the seed's prefix
     Tricks(RunOpts),
-    /// Runs an app or another executable in a seed
+    /// Runs an application in a seed
     Run(RunOpts),
-    /// Creates a .desktop entry to launch applications inside a seed from the application menu
-    Desktop(DesktopArgs),
+    /// Generates menu entries for each app entries in a seed for launching from the application menu
+    GenerateMenu,
 }
 
 #[derive(Args)]
@@ -50,15 +50,15 @@ pub struct SeedOpts {
 
 #[derive(Subcommand)]
 pub enum SeedCommands {
+    /// Lists all seeds
+    List(ListOpts),
     /// Creates a seed
     Create(CreateOpts),
     /// Set a seed's properties
     Set(SetOpts),
     /// Removes a seed
     Delete(DeleteOpts),
-    /// Lists seeds
-    List(ListOpts),
-    /// Shows a seed's configuration
+    /// Shows a seed's information
     Info(InfoOpts),
 }
 
@@ -201,7 +201,7 @@ pub struct AppOpts {
 
 #[derive(Subcommand)]
 pub enum AppCommands {
-    /// List apps in a seed
+    /// List all apps in a seed
     List(AppListOpts),
     /// Adds an app to a seed
     Add(AppAddOpts),
@@ -211,7 +211,7 @@ pub enum AppCommands {
     Rename(AppRenameOpts),
     /// Removes an app from a seed
     Delete(AppDeleteOpts),
-    /// Adds a start menu entry as an app to a seed
+    /// Generates an app entry from a Start Menu shortcut
     StartMenu(AppStartMenuOpts),
 }
 #[derive(Args)]
@@ -296,12 +296,6 @@ pub struct RunOpts {
     /// Wait until the app exits
     #[arg(short, long)]
     wait: bool,
-}
-
-#[derive(Args)]
-pub struct DesktopArgs {
-    /// Name of seed
-    name: String,
 }
 
 #[derive(Tabled)]
@@ -548,6 +542,6 @@ fn main() -> Result<(), FloraError> {
                 None => manager.seed_run_app(&opts.name, &None, opts.quiet, opts.wait),
             }
         }
-        Commands::Desktop(args) => manager.create_desktop_entry(&args.name),
+        Commands::GenerateMenu => manager.create_desktop_entry(),
     }
 }
