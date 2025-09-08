@@ -1,5 +1,7 @@
 use std::fmt;
 
+use flora_icon::FloraLinkError;
+
 /// Every error that Flora can throw
 pub enum FloraError {
     /// Internal Flora error
@@ -34,6 +36,9 @@ pub enum FloraError {
     /// Unable to launch seed
     LaunchError,
 
+    /// Something wrong when processing icons
+    IconError(FloraLinkError),
+
     /// Error parsing config
     ConfigError(toml::de::Error),
     /// Error saving config
@@ -57,6 +62,7 @@ impl fmt::Debug for FloraError {
             Self::MissingRunner => write!(f, "Cannot find runner"),
             Self::MissingRunnerConfig => write!(f, "Cannot find config for runner"),
             Self::LaunchError => write!(f, "Unable to launch seed"),
+            Self::IconError(_) => write!(f, "There was a problem processing icons"),
             Self::ConfigError(err) => write!(f, "Config read error: {}", err),
             Self::ConfigSaveError(err) => write!(f, "Config save error: {}", err),
             Self::IoError(err) => write!(f, "IO error: {}", err),
@@ -79,5 +85,10 @@ impl From<toml::ser::Error> for FloraError {
 impl From<std::io::Error> for FloraError {
     fn from(value: std::io::Error) -> Self {
         Self::IoError(value)
+    }
+}
+impl From<FloraLinkError> for FloraError {
+    fn from(value: FloraLinkError) -> Self {
+        Self::IconError(value)
     }
 }

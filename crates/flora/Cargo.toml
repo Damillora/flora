@@ -16,3 +16,4 @@ serde = { version = "1.0.219", features = ["derive"] }
 toml = { version = "0.9.5", features = ["serde"] }
 whoami = "1.6.1"
 walkdir = "2"
+flora_icon = { version = "0.1.0", path = "../flora_icon" }

@@ -1,0 +1,14 @@
+[package]
+name = "flora_icon"
+version = "0.1.0"
+edition = "2024"
+authors.workspace = true
+documentation.workspace = true
+
+[dependencies]
+ico = "0.4.0"
+infer = "0.19.0"
+lnk = "0.6.3"
+log = "0.4.28"
+pelite = "0.10.0"
+png = "0.18.0"

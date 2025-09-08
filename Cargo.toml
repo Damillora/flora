@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "crates/flora", "crates/flora_cli"]
+members = [ "crates/flora", "crates/flora_cli", "crates/flora_icon"]
 
 [workspace.package]
 authors = ["Damillora"]

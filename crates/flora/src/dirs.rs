@@ -104,6 +104,13 @@ impl FloraDirs {
         desktop_entry_location
     }
 
+    pub fn get_icon_file(&self, name: &String, app_name: &String) -> PathBuf {
+        let mut icon_path = self.get_icons_root();
+        icon_path.push(format!("{}_{}.png", name, app_name));
+
+        icon_path
+    }
+
     pub fn create_dirs(&self) {
         fs::create_dir_all(&self.flora_root).unwrap();
         fs::create_dir_all(&self.applications_entry_dir).unwrap();

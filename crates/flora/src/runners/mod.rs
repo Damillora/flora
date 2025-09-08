@@ -69,11 +69,12 @@ pub fn run_seed_executable(
 pub fn create_desktop_entry(
     name: &String,
     dirs: &FloraDirs,
+    config: &FloraConfig,
     seed: &FloraSeed,
 ) -> Result<(), crate::errors::FloraError> {
     match seed.seed_type {
-        FloraSeedType::Wine(_) => wine::create_desktop_entry(name, dirs, seed),
-        FloraSeedType::Proton(_) => proton::create_desktop_entry(name, dirs, seed),
+        FloraSeedType::Wine(_) => wine::create_desktop_entry(name, dirs, config, seed),
+        FloraSeedType::Proton(_) => proton::create_desktop_entry(name, dirs, config, seed),
     }
 }
 

@@ -341,7 +341,7 @@ impl FloraManager {
 
         let seed_config = self.read_seed_config(name)?;
 
-        runners::create_desktop_entry(name, &self.flora_dirs, &seed_config)
+        runners::create_desktop_entry(name, &self.flora_dirs, &self.config, &seed_config)
     }
 }
 
