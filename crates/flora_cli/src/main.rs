@@ -80,17 +80,15 @@ pub enum CreateCommands {
 pub struct CreateSeedOpts {
     /// Name of seed
     name: String,
-
-    #[clap(flatten)]
-    default_opts: Option<CreateSeedDefaultOpts>,
 }
 #[derive(Args)]
+#[group()]
 pub struct CreateSeedDefaultOpts {
     /// Default application name for the seed
-    #[arg(short = 'n', long)]
+    #[arg(short = 'n', long, required = false)]
     default_application_name: String,
     /// Default executable location for the seed, passed to wine or proton.
-    #[arg(short = 'l', long)]
+    #[arg(short = 'l', long, required = false)]
     default_application_location: String,
 }
 #[derive(Args)]
@@ -98,6 +96,8 @@ pub struct CreateWineOpts {
     #[command(flatten)]
     seed: CreateSeedOpts,
 
+    #[clap(flatten)]
+    default_opts: Option<CreateSeedDefaultOpts>,
     /// Wine prefix for the seed
     #[arg(short = 'p', long)]
     wine_prefix: Option<String>,
@@ -109,6 +109,9 @@ pub struct CreateWineOpts {
 pub struct CreateProtonOpts {
     #[command(flatten)]
     seed: CreateSeedOpts,
+
+    #[clap(flatten)]
+    default_opts: Option<CreateSeedDefaultOpts>,
 
     /// Proton prefix for the seed
     #[arg(short = 'p', long)]
@@ -346,12 +349,13 @@ impl From<&FloraSeedAppItem> for SeedAppTableRow {
 
 fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::WineOptions(FloraCreateWineSeed {
-        default_application: args.seed.default_opts.as_ref().map(|default_opt| {
-            FloraCreateSeedApp {
+        default_application: args
+            .default_opts
+            .as_ref()
+            .map(|default_opt| FloraCreateSeedApp {
                 application_name: default_opt.default_application_name.clone(),
                 application_location: default_opt.default_application_location.clone(),
-            }
-        }),
+            }),
 
         wine_prefix: args.wine_prefix.clone(),
         wine_runner: args.wine_runtime.clone(),
@@ -362,12 +366,13 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
 
 fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::ProtonOptions(FloraCreateProtonSeed {
-        default_application: args.seed.default_opts.as_ref().map(|default_opt| {
-            FloraCreateSeedApp {
+        default_application: args
+            .default_opts
+            .as_ref()
+            .map(|default_opt| FloraCreateSeedApp {
                 application_name: default_opt.default_application_name.clone(),
                 application_location: default_opt.default_application_location.clone(),
-            }
-        }),
+            }),
 
         proton_prefix: args.proton_prefix.clone(),
         proton_runtime: args.proton_runtime.clone(),
