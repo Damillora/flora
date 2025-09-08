@@ -3,8 +3,9 @@ use flora::{
     errors::FloraError,
     manager::FloraManager,
     requests::{
-        FloraCreateProtonSeed, FloraCreateSeed, FloraCreateWineSeed, FloraUpdateProtonSeed,
-        FloraUpdateSeed, FloraUpdateWineSeed,
+        FloraCreateProtonSeed, FloraCreateSeed, FloraCreateSeedApp, FloraCreateWineSeed,
+        FloraDeleteSeedApp, FloraRenameSeedApp, FloraSeedAppOperations, FloraUpdateProtonSeed,
+        FloraUpdateSeed, FloraUpdateSeedApp, FloraUpdateWineSeed,
     },
     responses::{FloraSeedAppItem, FloraSeedItem},
 };
@@ -37,6 +38,8 @@ pub enum Commands {
     List(ListOpts),
     /// Show a seed's configuration
     Show(ShowOpts),
+    /// Manage apps in a seed
+    App(AppOpts),
     /// Launches a configuration tool inside the seed's prefix
     Config(RunOpts),
     /// Launches wine(proton)tricks for a seed's prefix
@@ -70,8 +73,8 @@ pub struct CreateSeedOpts {
     #[arg(short = 'n', long)]
     default_application_name: Option<String>,
     /// Default executable location for the seed, passed to wine or proton.
-    #[arg(short = 'e', long)]
-    default_executable_location: Option<String>,
+    #[arg(short = 'l', long)]
+    default_application_location: Option<String>,
 }
 
 #[derive(Args)]
@@ -175,6 +178,83 @@ pub struct ShowOpts {
 }
 
 #[derive(Args)]
+pub struct AppOpts {
+    #[command(subcommand)]
+    commands: AppCommands,
+}
+
+#[derive(Subcommand)]
+pub enum AppCommands {
+    /// List apps in a seed
+    List(AppListOpts),
+    /// Adds an app to a seed
+    Add(AppAddOpts),
+    /// Updates an app in a seed
+    Update(AppUpdateOpts),
+    /// Renames an app in a seed
+    Rename(AppRenameOpts),
+    /// Removes an app from a seed
+    Delete(AppDeleteOpts),
+}
+#[derive(Args)]
+pub struct AppSeedOpts {
+    /// Name of seed
+    name: String,
+}
+#[derive(Args)]
+pub struct AppListOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Long format
+    #[arg(short = 'l', long)]
+    long: bool,
+}
+
+#[derive(Args)]
+pub struct AppAddOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Name for the app
+    application_name: String,
+    /// Location for the app, passed to wine or proton.
+    #[arg(short = 'l', long)]
+    application_location: String,
+}
+
+#[derive(Args)]
+pub struct AppUpdateOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Name for the app
+    application_name: String,
+    /// Location for the app, passed to wine or proton.
+    #[arg(short = 'l', long)]
+    application_location: Option<String>,
+}
+#[derive(Args)]
+pub struct AppRenameOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Old name of the app
+    old_application_name: String,
+    /// New name of the app
+    new_application_name: String,
+}
+
+#[derive(Args)]
+pub struct AppDeleteOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Name for the app
+    application_name: String,
+}
+
+#[derive(Args)]
 pub struct RunOpts {
     /// Name of seed
     name: String,
@@ -249,7 +329,7 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
         default_application_name: args.seed.default_application_name.clone(),
         default_application_location: args
             .seed
-            .default_executable_location
+            .default_application_location
             .clone()
             .unwrap_or_default(),
 
@@ -265,7 +345,7 @@ fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result
         default_application_name: args.seed.default_application_name.clone(),
         default_application_location: args
             .seed
-            .default_executable_location
+            .default_application_location
             .clone()
             .unwrap_or_default(),
 
@@ -339,7 +419,6 @@ fn main() -> Result<(), FloraError> {
             }
             Ok(())
         }
-
         Commands::Show(args) => {
             let seed = manager.show_seed(&args.name)?;
             let seed_table = SeedTableRow::from(&seed);
@@ -391,5 +470,52 @@ fn main() -> Result<(), FloraError> {
             }
         }
         Commands::Desktop(args) => manager.create_desktop_entry(&args.name),
+        Commands::App(app_opts) => match &app_opts.commands {
+            AppCommands::List(app_list_opts) => {
+                let seed = manager.show_seed(&app_list_opts.seed.name)?;
+                if app_list_opts.long {
+                    let table_items = seed.apps.iter().map(SeedAppTableRow::from);
+
+                    let mut table = Table::new(table_items);
+                    table.with(Style::blank());
+                    table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
+                    table.modify(Columns::first(), Alignment::left());
+
+                    println!("{}", table);
+                } else {
+                    for app in seed.apps {
+                        println!("{}", app.application_name,)
+                    }
+                }
+                Ok(())
+            }
+            AppCommands::Add(app_add_opts) => manager.update_seed_apps(
+                &app_add_opts.seed.name,
+                &vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
+                    application_name: app_add_opts.application_name.clone(),
+                    application_location: app_add_opts.application_location.clone(),
+                })],
+            ),
+            AppCommands::Update(app_update_opts) => manager.update_seed_apps(
+                &app_update_opts.seed.name,
+                &vec![FloraSeedAppOperations::Update(FloraUpdateSeedApp {
+                    application_name: app_update_opts.application_name.clone(),
+                    application_location: app_update_opts.application_location.clone(),
+                })],
+            ),
+            AppCommands::Rename(app_rename_opts) => manager.update_seed_apps(
+                &app_rename_opts.seed.name,
+                &vec![FloraSeedAppOperations::Rename(FloraRenameSeedApp {
+                    old_application_name: app_rename_opts.old_application_name.clone(),
+                    new_application_name: app_rename_opts.new_application_name.clone(),
+                })],
+            ),
+            AppCommands::Delete(app_delete_opts) => manager.update_seed_apps(
+                &app_delete_opts.seed.name,
+                &vec![FloraSeedAppOperations::Delete(FloraDeleteSeedApp {
+                    application_name: app_delete_opts.application_name.clone(),
+                })],
+            ),
+        },
     }
 }

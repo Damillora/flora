@@ -4,9 +4,27 @@ pub enum FloraCreateSeed {
     ProtonOptions(FloraCreateProtonSeed),
 }
 
+pub enum FloraSeedAppOperations {
+    Add(FloraCreateSeedApp),
+    Update(FloraUpdateSeedApp),
+    Rename(FloraRenameSeedApp),
+    Delete(FloraDeleteSeedApp),
+}
+
 pub struct FloraCreateSeedApp {
     pub application_name: String,
     pub application_location: String,
+}
+pub struct FloraUpdateSeedApp {
+    pub application_name: String,
+    pub application_location: Option<String>,
+}
+pub struct FloraRenameSeedApp {
+    pub old_application_name: String,
+    pub new_application_name: String,
+}
+pub struct FloraDeleteSeedApp {
+    pub application_name: String,
 }
 
 pub struct FloraCreateWineSeed {

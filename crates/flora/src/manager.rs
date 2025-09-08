@@ -10,7 +10,7 @@ use crate::{
     config::FloraConfig,
     dirs::FloraDirs,
     errors::FloraError,
-    requests::{FloraCreateSeed, FloraUpdateSeed},
+    requests::{FloraCreateSeed, FloraSeedAppOperations, FloraUpdateSeed},
     responses::FloraSeedItem,
     runners,
     seed::FloraSeed,
@@ -109,6 +109,35 @@ impl FloraManager {
 
         Ok(())
     }
+    /// Edit seed apps
+    pub fn update_seed_apps(
+        &self,
+        name: &String,
+        upd_data: &Vec<FloraSeedAppOperations>,
+    ) -> Result<(), FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
+        }
+
+        let seed_location = self.seed_path(name);
+
+        debug!(
+            "Updating seed at {}",
+            &seed_location
+                .clone()
+                .into_os_string()
+                .into_string()
+                .map_err(|_| FloraError::InternalError)?
+        );
+
+        let mut seed_config = self.read_seed_config(name)?;
+        seed_config.update_apps(upd_data)?;
+
+        self.write_seed_config(name, &seed_config)?;
+
+        Ok(())
+    }
+
     /// Deletes new Flora seed
     pub fn delete_seed(&self, name: &String) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::FloraConfig,
     errors::FloraError,
-    requests::{FloraCreateSeed, FloraUpdateSeed},
+    requests::{FloraCreateSeed, FloraCreateSeedApp, FloraSeedAppOperations, FloraUpdateSeed},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -44,6 +44,15 @@ pub(crate) struct FloraSeedApp {
     pub application_name: String,
     pub application_location: String,
 }
+impl From<&FloraCreateSeedApp> for FloraSeedApp {
+    fn from(value: &FloraCreateSeedApp) -> Self {
+        Self {
+            application_name: value.application_name.clone(),
+            application_location: value.application_location.clone(),
+        }
+    }
+}
+
 // Instance functions
 impl FloraSeed {
     pub(crate) fn merge_options(&mut self, seed_opts: &FloraUpdateSeed) -> Result<(), FloraError> {
@@ -82,6 +91,66 @@ impl FloraSeed {
             }
             _ => Err(FloraError::SeedUpdateMismatch),
         }
+    }
+
+    pub(crate) fn update_apps(
+        &mut self,
+        seed_ops: &Vec<FloraSeedAppOperations>,
+    ) -> Result<(), FloraError> {
+        for op in seed_ops {
+            match &op {
+                FloraSeedAppOperations::Add(flora_create_seed_app) => {
+                    if !self
+                        .apps
+                        .iter()
+                        .any(|i| i.application_name == flora_create_seed_app.application_name)
+                    {
+                        self.apps.push(FloraSeedApp::from(flora_create_seed_app));
+                    } else {
+                        return Err(FloraError::SeedAppExists);
+                    }
+                }
+                FloraSeedAppOperations::Update(flora_update_seed_app) => {
+                    if let Some(idx) = self
+                        .apps
+                        .iter()
+                        .position(|i| i.application_name == flora_update_seed_app.application_name)
+                    {
+                        let app = self.apps.get_mut(idx).unwrap();
+
+                        if let Some(app_location) = &flora_update_seed_app.application_location {
+                            app.application_location = app_location.clone();
+                        }
+                    } else {
+                        return Err(FloraError::SeedNoApp);
+                    }
+                }
+                FloraSeedAppOperations::Rename(flora_rename_seed_app) => {
+                    if let Some(idx) = self.apps.iter().position(|i| {
+                        i.application_name == flora_rename_seed_app.old_application_name
+                    }) {
+                        let app = self.apps.get_mut(idx).unwrap();
+
+                        app.application_name = flora_rename_seed_app.new_application_name.clone();
+                    } else {
+                        return Err(FloraError::SeedNoApp);
+                    }
+                }
+                FloraSeedAppOperations::Delete(flora_delete_seed_app) => {
+                    if let Some(idx) = self
+                        .apps
+                        .iter()
+                        .position(|i| i.application_name == flora_delete_seed_app.application_name)
+                    {
+                        self.apps.remove(idx);
+                    } else {
+                        return Err(FloraError::SeedNoApp);
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 

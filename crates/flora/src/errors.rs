@@ -15,6 +15,8 @@ pub enum FloraError {
     SeedNoDefaultApp,
     /// Seed has no specified app
     SeedNoApp,
+    /// Seed app already exists
+    SeedAppExists,
 
     /// Incorrect update type on seed
     SeedUpdateMismatch,
@@ -45,6 +47,7 @@ impl fmt::Debug for FloraError {
             Self::SeedNotFound => write!(f, "Seed does not exist"),
             Self::SeedNoDefaultApp => write!(f, "Seed does not have a default app"),
             Self::SeedNoApp => write!(f, "Seed does not have this app"),
+            Self::SeedAppExists => write!(f, "App already exists"),
             Self::SeedUpdateMismatch => write!(f, "Attempting to update the wrong seed type"),
             Self::IncorrectRunner => write!(f, "Incorrect runner has been invoked"),
             Self::MissingRunner => write!(f, "Cannot find runner"),
