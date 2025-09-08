@@ -334,13 +334,14 @@ Categories=X-Flora
 Name={}
 Icon={}
 Exec=flora run -a -w {} \"{}\"
-Comment=Run {} with Flora
+Comment=Run {} with Flora (Wine seed {})
 Terminal=false",
             app.application_name,
             "applications-other",
             name,
             app.application_name,
-            app.application_name
+            app.application_name,
+            name
         );
 
         let desktop_entry_location = dirs.get_desktop_entry_file(name, &app.application_name);
