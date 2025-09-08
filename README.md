@@ -38,23 +38,22 @@ This file will be automatically generated with defaults when `flora` is run for 
 
 * `[wine]`
   * `wine_prefix_location`: Location where Wine prefixes are installed. Default is `$HOME/.local/share/flora/prefixes`.
-  * `default_wine_prefix`: Default Wine prefix used for running applications. Default is `$HOME/.local/share/flora/prefixes/default`.
-  * `default_wine_runtime`: Default Proton runtime used for running applications. Default is system wine (`/usr/bin/wine`).
+  * `default_wine_prefix`: Default Wine prefix used by seeds. Default is `$HOME/.local/share/flora/prefixes/default`.
+  * `default_wine_runtime`: Default Proton runtime used by seeds. Default is system wine (`/usr/bin/wine`).
 * `[proton]`
   * `proton_prefix_location`: Location where Wine prefixes are installed. Default is `$HOME/.local/share/flora/prefixes`.
-  * `default_proton_prefix`: Default Wine prefix used for running applications. Default is `$HOME/.local/share/flora/prefixes/proton`.
-  * `default_proton_runtime`: Default Proton runtime used for running applications. Default is empty.
+  * `default_proton_prefix`: Default Wine prefix used by seeds. Default is `$HOME/.local/share/flora/prefixes/proton`.
+  * `default_proton_runtime`: Default Proton runtime used by seeds. Default is empty.
 
-
-Each application is configured in `.toml` files, located in `$HOME/.local/share/flora/apps` folder.
-* `type`: Choose between `Wine` for running apps in Wine or `Proton` for running apps in Proton using umu-launcher.
+Each application is configured in `.toml` files, located in `$HOME/.local/share/flora/seeds` folder.
+* `pretty_name`: Name of application shown on menu
 * `executable_location`: The executable to be launched when using the `run` command and from the `.desktop` entry.
-* Wine
-  * `wine_prefix`: Prefix where the app is installed.
-  * `wine_runtime`: Wine runtime used to run the app.
-* Proton
-  * `proton_prefix`: Prefix where the app is installed.
-  * `proton_runtime`: Proton runtime used to run the app.
+* `[wine]`
+  * `wine_prefix`: Prefix used by the seed.
+  * `wine_runtime`: Wine runtime used by the seed.
+* `[proton]`
+  * `proton_prefix`: Prefix used by the seed.
+  * `proton_runtime`: Proton runtime used by the seed.
   * `game_id`: Game ID to be passed to `umu-launcher`
   * `store`: Store name to be passed to `umu-launcher`
 

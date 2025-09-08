@@ -3,11 +3,11 @@ use std::{fs, path::PathBuf, process::Stdio};
 use log::{debug, info};
 
 use crate::{
-    app::{FloraApp, FloraAppProtonConfig, FloraAppType},
     config::FloraConfig,
     desktop,
     dirs::FloraDirs,
     errors::FloraError,
+    seed::{FloraProtonSeed, FloraSeed, FloraSeedType},
 };
 
 fn find_proton_tool(dirs: &FloraDirs, name: &String) -> Result<PathBuf, FloraError> {
@@ -36,19 +36,22 @@ fn find_proton_tool(dirs: &FloraDirs, name: &String) -> Result<PathBuf, FloraErr
 fn get_proton_tool(
     dirs: &FloraDirs,
     config: &FloraConfig,
-    proton_app_config: &FloraAppProtonConfig,
+    proton_seed: &FloraProtonSeed,
 ) -> Result<PathBuf, FloraError> {
-    let wine_dir = if let Some(runner) = &proton_app_config.proton_runtime {
-        // Proton runtime is defined in app config
+    let wine_dir = if let Some(runner) = &proton_seed.proton_runtime {
+        // Proton runtime is defined in seed.
+        // Use Proton runtime defined in seed.
         Ok(find_proton_tool(&dirs, &runner)?)
     } else if let Some(proton_config) = &config.proton {
-        // Proton runtime is not defined in app config, but defined in global config
+        // Proton runtime is not defined in seed, but defined globally.
+        // Use Proton runtime defined in global configuration.
         Ok(find_proton_tool(
             &dirs,
             &proton_config.default_proton_runtime,
         )?)
     } else {
-        // Proton runtime is not defined in app config and global config, keep empty.
+        // Proton runtime is not defined in seed nor global.
+        // Define an empty runtime, and let umu-launcher decide.
         Ok(PathBuf::from(""))
     };
 
@@ -58,17 +61,20 @@ fn get_proton_tool(
 fn get_proton_prefix(
     dirs: &FloraDirs,
     config: &FloraConfig,
-    proton_app_config: &FloraAppProtonConfig,
+    proton_seed: &FloraProtonSeed,
 ) -> PathBuf {
-    let wine_prefix = if let Some(path) = &proton_app_config.proton_prefix {
-        // Prefix is defined in app config
+    let wine_prefix = if let Some(path) = &proton_seed.proton_prefix {
+        // Prefix is defined in seed
+        // Use prefix defined by seed.
         PathBuf::from(path.clone())
     } else if let Some(proton_config) = &config.proton {
-        // Prefix is not defined in app config, but there is a default prefix in global config
+        // Prefix is not defined in seed, but there is a default prefix defined globally.
+        // Use default prefix from global configuration.
         PathBuf::from(&proton_config.default_proton_prefix)
     } else {
-        // Prefix is not defined in app config and global config
-        PathBuf::from(dirs.get_fallback_prefix())
+        // Prefix is not defined in seed and default prefix is not set.
+        // Use a well-known fallback prefix directory.
+        PathBuf::from(dirs.get_fallback_prefix_proton())
     };
 
     wine_prefix
@@ -113,12 +119,12 @@ pub fn run_proton_executable(
     name: &String,
     dirs: &FloraDirs,
     config: &FloraConfig,
-    app: &FloraApp,
+    seed: &FloraSeed,
     args: &Vec<String>,
     quiet: bool,
     wait: bool,
 ) -> Result<(), FloraError> {
-    if let FloraAppType::Proton(proton_config) = &app.app_type {
+    if let FloraSeedType::Proton(proton_config) = &seed.seed_type {
         let proton_tool = get_proton_tool(&dirs, &config, &proton_config)?;
         let proton_prefix = get_proton_prefix(&dirs, &config, &proton_config);
 
@@ -162,7 +168,7 @@ pub fn run_proton_tricks(
     name: &String,
     dirs: &FloraDirs,
     config: &FloraConfig,
-    app: &FloraApp,
+    seed: &FloraSeed,
     args: &Option<Vec<String>>,
     quiet: bool,
     wait: bool,
@@ -173,14 +179,14 @@ pub fn run_proton_tricks(
         winetricks_path.extend(additional_args.iter().cloned());
     }
 
-    run_proton_executable(name, dirs, config, app, &winetricks_path, quiet, wait)
+    run_proton_executable(name, dirs, config, seed, &winetricks_path, quiet, wait)
 }
 
 pub fn run_proton_config(
     name: &String,
     dirs: &FloraDirs,
     config: &FloraConfig,
-    app: &FloraApp,
+    seed: &FloraSeed,
     args: &Option<Vec<String>>,
     quiet: bool,
     wait: bool,
@@ -191,13 +197,13 @@ pub fn run_proton_config(
         winecfg_path.extend(additional_args.iter().cloned());
     }
 
-    run_proton_executable(name, dirs, config, app, &winecfg_path, quiet, wait)
+    run_proton_executable(name, dirs, config, seed, &winecfg_path, quiet, wait)
 }
 
 pub fn create_desktop_entry(
     name: &String,
     dirs: &FloraDirs,
-    app: &FloraApp,
+    seed: &FloraSeed,
 ) -> Result<(), FloraError> {
     // Initialize menus
     desktop::initialize_desktop_entries(&dirs)?;
@@ -212,7 +218,7 @@ Icon={}
 Exec=flora run -w {}
 Comment=Run {} with Flora using Proton
 Terminal=false",
-        app.pretty_name, "applications-other", name, app.pretty_name
+        seed.pretty_name, "applications-other", name, seed.pretty_name
     );
 
     let desktop_entry_location = dirs.get_desktop_entry_file(&name);

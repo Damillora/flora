@@ -5,11 +5,11 @@ pub enum FloraError {
     /// Internal Flora error
     InternalError,
 
-    /// App already exists
-    AppExists,
+    /// Seed already exists
+    SeedExists,
 
-    /// App is not found
-    AppNotFound,
+    /// Seed is not found
+    SeedNotFound,
 
     /// Incorrect runner is invoked
     IncorrectRunner,
@@ -19,7 +19,7 @@ pub enum FloraError {
     /// Config for runner is not found
     MissingRunnerConfig,
 
-    /// Unable to launch app
+    /// Unable to launch seed
     LaunchError,
 
     /// Error parsing config
@@ -32,12 +32,12 @@ impl fmt::Debug for FloraError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InternalError => write!(f, "An internal error has occured"),
-            Self::AppExists => write!(f, "App already exists"),
-            Self::AppNotFound => write!(f, "App does not exist"),
+            Self::SeedExists => write!(f, "Seed already exists"),
+            Self::SeedNotFound => write!(f, "Seed does not exist"),
             Self::IncorrectRunner => write!(f, "Incorrect runner has been invoked"),
             Self::MissingRunner => write!(f, "Cannot find runner"),
             Self::MissingRunnerConfig => write!(f, "Cannot find config for runner"),
-            Self::LaunchError => write!(f, "Unable to launch app"),
+            Self::LaunchError => write!(f, "Unable to launch seed"),
             Self::ConfigError(err) => write!(f, "Config read error: {}", err),
             Self::IoError(err) => write!(f, "IO error: {}", err),
         }

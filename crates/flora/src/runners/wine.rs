@@ -3,49 +3,47 @@ use std::{fs, path::PathBuf, process::Stdio};
 use log::{debug, info};
 
 use crate::{
-    app::{FloraApp, FloraAppType, FloraAppWineConfig},
     config::FloraConfig,
     desktop,
     dirs::FloraDirs,
     errors::FloraError,
+    seed::{FloraSeed, FloraSeedType, FloraWineSeed},
 };
 
-fn get_wine_dir(
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    wine_app_config: &FloraAppWineConfig,
-) -> PathBuf {
-    let wine_dir = if let Some(runner) = &wine_app_config.wine_runtime {
-        // Wine runtime is defined in app config
+fn get_wine_dir(dirs: &FloraDirs, config: &FloraConfig, wine_seed: &FloraWineSeed) -> PathBuf {
+    let wine_dir = if let Some(runner) = &wine_seed.wine_runtime {
+        // Wine runtime is defined in seed.
+        // Use Wine runtime defined in seed.
         let mut wine_path = dirs.get_wine_root();
         wine_path.push(runner);
         PathBuf::from(&wine_path)
     } else if let Some(wine_config) = &config.wine {
-        // Wine runtime is not defined in app config, but defined in global config
+        // Wine runtime is not defined in seed, but defined globally.
+        // Use Wine runtime defined in global configuration
         let mut wine_path = dirs.get_wine_root();
         wine_path.push(wine_config.default_wine_runtime.clone());
         PathBuf::from(&wine_path)
     } else {
-        // Wine runtime is not defined in app config and global config, use system wine.
+        // Wine runtime is not defined in seed and globally.
+        // Use system wine in /usr
         PathBuf::from("/usr")
     };
 
     wine_dir
 }
 
-fn get_wine_prefix(
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    wine_app_config: &FloraAppWineConfig,
-) -> PathBuf {
-    let wine_prefix = if let Some(path) = &wine_app_config.wine_prefix {
-        // Prefix is defined in app config
+fn get_wine_prefix(dirs: &FloraDirs, config: &FloraConfig, wine_seed: &FloraWineSeed) -> PathBuf {
+    let wine_prefix = if let Some(path) = &wine_seed.wine_prefix {
+        // Prefix is defined in seed
+        // Use prefix defined in seed.
         PathBuf::from(path.clone())
     } else if let Some(wine_config) = &config.wine {
-        // Prefix is not defined in app config, but there is a default prefix in global config
+        // Prefix is not defined in seed, but there is a default prefix defined globally.
+        // Use default prefix from global configuration.
         PathBuf::from(&wine_config.default_wine_prefix)
     } else {
-        // Prefix is not defined in app config and global config
+        // Prefix is not defined in seed and default prefix is not set.
+        // Use a well-known fallback prefix directory.
         PathBuf::from(dirs.get_fallback_prefix())
     };
 
@@ -91,12 +89,12 @@ pub fn run_wine_executable(
     name: &String,
     dirs: &FloraDirs,
     config: &FloraConfig,
-    app: &FloraApp,
+    seed: &FloraSeed,
     args: &Vec<String>,
     quiet: bool,
     wait: bool,
 ) -> Result<(), FloraError> {
-    if let FloraAppType::Wine(wine_config) = &app.app_type {
+    if let FloraSeedType::Wine(wine_config) = &seed.seed_type {
         let wine_dir = get_wine_dir(&dirs, &config, &wine_config);
         let wine_prefix = get_wine_prefix(&dirs, &config, &wine_config);
 
@@ -146,12 +144,12 @@ pub fn run_wine_tricks(
     name: &String,
     dirs: &FloraDirs,
     config: &FloraConfig,
-    app: &FloraApp,
+    seed: &FloraSeed,
     args: &Option<Vec<String>>,
     quiet: bool,
     wait: bool,
 ) -> Result<(), FloraError> {
-    if let FloraAppType::Wine(wine_config) = &app.app_type {
+    if let FloraSeedType::Wine(wine_config) = &seed.seed_type {
         let wine_dir = get_wine_dir(&dirs, &config, &wine_config);
         let wine_prefix = get_wine_prefix(&dirs, &config, &wine_config);
 
@@ -206,7 +204,7 @@ pub fn run_wine_config(
     name: &String,
     dirs: &FloraDirs,
     config: &FloraConfig,
-    app: &FloraApp,
+    seed: &FloraSeed,
     args: &Option<Vec<String>>,
     quiet: bool,
     wait: bool,
@@ -217,13 +215,13 @@ pub fn run_wine_config(
         winecfg_path.extend(additional_args.iter().cloned());
     }
 
-    run_wine_executable(name, dirs, config, app, &winecfg_path, quiet, wait)
+    run_wine_executable(name, dirs, config, seed, &winecfg_path, quiet, wait)
 }
 
 pub fn create_desktop_entry(
     name: &String,
     dirs: &FloraDirs,
-    app: &FloraApp,
+    seed: &FloraSeed,
 ) -> Result<(), FloraError> {
     // Initialize menus
     desktop::initialize_desktop_entries(&dirs)?;
@@ -238,7 +236,7 @@ Icon={}
 Exec=flora run -w {}
 Comment=Run {} with Flora
 Terminal=false",
-        app.pretty_name, "applications-other", name, app.pretty_name
+        seed.pretty_name, "applications-other", name, seed.pretty_name
     );
 
     let desktop_entry_location = dirs.get_desktop_entry_file(&name);

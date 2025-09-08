@@ -7,15 +7,15 @@ use directories::ProjectDirs;
 use log::debug;
 
 use crate::{
-    app::{FloraApp, FloraAppOptions},
     config::FloraConfig,
     dirs::FloraDirs,
     errors::FloraError,
-    responses::FloraAppListItem,
+    responses::FloraSeedItem,
     runners,
+    seed::{FloraCreateSeed, FloraSeed},
 };
 
-/// Manages Flora app configurations
+/// Manages Flora seeds configurations
 pub struct FloraManager {
     flora_dirs: Box<FloraDirs>,
     config: Box<FloraConfig>,
@@ -23,195 +23,199 @@ pub struct FloraManager {
 
 // Instance functions
 impl FloraManager {
-    fn app_path(&self, name: &String) -> PathBuf {
-        let mut new_app_location = self.flora_dirs.get_app_root();
-        new_app_location.push(format!("{}.toml", name));
+    fn seed_path(&self, name: &String) -> PathBuf {
+        let mut new_seed_location = self.flora_dirs.get_seed_root();
+        new_seed_location.push(format!("{}.toml", name));
 
-        new_app_location
+        new_seed_location
     }
 
-    fn is_app_exists(&self, name: &String) -> Result<bool, FloraError> {
-        let new_app_location = self.app_path(name);
+    fn is_seed_exists(&self, name: &String) -> Result<bool, FloraError> {
+        let new_seed_location = self.seed_path(name);
 
-        let result = fs::exists(new_app_location).map_err(|_| FloraError::InternalError)?;
+        let result = fs::exists(new_seed_location).map_err(|_| FloraError::InternalError)?;
 
         Ok(result)
     }
 
-    fn read_app_config(&self, name: &String) -> Result<FloraApp, FloraError> {
-        let app_config_path = self.app_path(name);
-        let config_toml = fs::read_to_string(&app_config_path)?;
-        let config: FloraApp = toml::from_str(config_toml.as_str())?;
+    fn read_seed_config(&self, name: &String) -> Result<FloraSeed, FloraError> {
+        let seed_config_path = self.seed_path(name);
+        let config_toml = fs::read_to_string(&seed_config_path)?;
+        let config: FloraSeed = toml::from_str(config_toml.as_str())?;
 
         Ok(config)
     }
 
-    /// Creates a new Flora app
-    pub fn create_app(&self, name: &String, app: &FloraAppOptions) -> Result<(), FloraError> {
-        if self.is_app_exists(name)? {
-            return Err(FloraError::AppExists);
+    /// Creates a new Flora seed
+    pub fn create_seed(
+        &self,
+        name: &String,
+        seed_opts: &FloraCreateSeed,
+    ) -> Result<(), FloraError> {
+        if self.is_seed_exists(name)? {
+            return Err(FloraError::SeedExists);
         }
 
-        let new_app_location = self.app_path(name);
+        let new_seed_location = self.seed_path(name);
 
         debug!(
-            "Creating app at {}",
-            &new_app_location
+            "Creating seed at {}",
+            &new_seed_location
                 .clone()
                 .into_os_string()
                 .into_string()
                 .map_err(|_| FloraError::InternalError)?
         );
 
-        let new_app = FloraApp::from_options(&self.config, &name, app)?;
-        let new_toml = toml::to_string(&new_app).map_err(|_| FloraError::InternalError)?;
+        let new_seed = FloraSeed::from_options(&self.config, &name, seed_opts)?;
+        let new_toml = toml::to_string(&new_seed).map_err(|_| FloraError::InternalError)?;
 
         // Write the content to the file
-        fs::write(&new_app_location, new_toml.as_bytes())?;
+        fs::write(&new_seed_location, new_toml.as_bytes())?;
 
         Ok(())
     }
 
-    /// Deletes new Flora app
-    pub fn delete_app(&self, name: &String) -> Result<(), FloraError> {
-        if !self.is_app_exists(name)? {
-            return Err(FloraError::AppNotFound);
+    /// Deletes new Flora seed
+    pub fn delete_seed(&self, name: &String) -> Result<(), FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
         }
 
-        let new_app_location = self.app_path(name);
+        let new_seed_location = self.seed_path(name);
 
         debug!(
-            "Deleting app at {}",
-            &new_app_location
+            "Deleting seed at {}",
+            &new_seed_location
                 .clone()
                 .into_os_string()
                 .into_string()
                 .map_err(|_| FloraError::InternalError)?
         );
 
-        fs::remove_file(&new_app_location)?;
+        fs::remove_file(&new_seed_location)?;
 
         Ok(())
     }
 
-    pub fn list_app(&self) -> Result<Vec<FloraAppListItem>, FloraError> {
-        let app_dir = self.flora_dirs.get_app_root();
+    pub fn list_seed(&self) -> Result<Vec<FloraSeedItem>, FloraError> {
+        let seed_dir = self.flora_dirs.get_seed_root();
 
-        let files = read_dir(&app_dir)?;
+        let files = read_dir(&seed_dir)?;
         let list_items = files
-            .map(|app_config_path| -> FloraAppListItem {
-                let path = app_config_path.unwrap().path();
+            .map(|seed_config_path| -> FloraSeedItem {
+                let path = seed_config_path.unwrap().path();
                 let file_stem = path.file_stem().unwrap_or_default();
                 let name = file_stem.to_os_string().into_string().unwrap();
 
-                let config = self.read_app_config(&name).unwrap();
+                let config = self.read_seed_config(&name).unwrap();
 
-                FloraAppListItem::from_config(&name, &config)
+                FloraSeedItem::from_config(&name, &config)
             })
             .collect();
 
         Ok(list_items)
     }
 
-    /// Deletes new Flora app
-    pub fn show_app(&self, name: &String) -> Result<FloraAppListItem, FloraError> {
-        if !self.is_app_exists(name)? {
-            return Err(FloraError::AppNotFound);
+    /// Deletes new Flora seed
+    pub fn show_seed(&self, name: &String) -> Result<FloraSeedItem, FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
         }
 
-        let app_config = self.read_app_config(&name)?;
+        let seed_config = self.read_seed_config(&name)?;
 
-        Ok(FloraAppListItem::from_config(name, &app_config))
+        Ok(FloraSeedItem::from_config(name, &seed_config))
     }
 
-    /// Launches the prefix configuration dialog of an app (usually winecfg)
-    pub fn app_config(
+    /// Launches the prefix configuration dialog of an seed (usually winecfg)
+    pub fn seed_config(
         &self,
         name: &String,
         args: &Option<Vec<String>>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
-        if !self.is_app_exists(name)? {
-            return Err(FloraError::AppNotFound);
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
         }
 
-        let app_config = self.read_app_config(&name)?;
+        let seed_config = self.read_seed_config(&name)?;
 
-        runners::run_app_config(
+        runners::run_seed_config(
             &name,
             &self.flora_dirs,
             &self.config,
-            &app_config,
+            &seed_config,
             args,
             quiet,
             wait,
         )
     }
 
-    /// Launches wine(proton)tricks inside an app's prefix
-    pub fn app_tricks(
+    /// Launches wine(proton)tricks inside an seed's prefix
+    pub fn seed_tricks(
         &self,
         name: &String,
         args: &Option<Vec<String>>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
-        if !self.is_app_exists(name)? {
-            return Err(FloraError::AppNotFound);
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
         }
 
-        let app_config = self.read_app_config(&name)?;
+        let seed_config = self.read_seed_config(&name)?;
 
-        runners::run_app_tricks(
+        runners::run_seed_tricks(
             &name,
             &self.flora_dirs,
             &self.config,
-            &app_config,
+            &seed_config,
             args,
             quiet,
             wait,
         )
     }
 
-    /// Launches an executable inside an app's prefix
-    pub fn app_run(
+    /// Launches an executable inside an seed's prefix
+    pub fn seed_run(
         &self,
         name: &String,
         args: &Option<Vec<String>>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
-        if !self.is_app_exists(name)? {
-            return Err(FloraError::AppNotFound);
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
         }
 
-        let app_config = self.read_app_config(&name)?;
+        let seed_config = self.read_seed_config(&name)?;
 
         let new_args = match args {
             Some(args) => args,
-            None => &vec![app_config.executable_location.clone()],
+            None => &vec![seed_config.executable_location.clone()],
         };
-        runners::run_app_executable(
+        runners::run_seed_executable(
             &name,
             &self.flora_dirs,
             &self.config,
-            &app_config,
+            &seed_config,
             new_args,
             quiet,
             wait,
         )
     }
 
-    /// Creates a desktop entry for application
+    /// Creates a desktop entry for seed
     pub fn create_desktop_entry(&self, name: &String) -> Result<(), FloraError> {
-        if !self.is_app_exists(name)? {
-            return Err(FloraError::AppNotFound);
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
         }
 
-        let app_config = self.read_app_config(&name)?;
+        let seed_config = self.read_seed_config(&name)?;
 
-        runners::create_desktop_entry(&name, &self.flora_dirs, &app_config)
+        runners::create_desktop_entry(&name, &self.flora_dirs, &seed_config)
     }
 }
 

@@ -16,11 +16,11 @@ pub struct FloraDirs {
 }
 
 impl FloraDirs {
-    pub fn get_app_root(&self) -> PathBuf {
-        let mut app_root = self.flora_root.clone();
-        app_root.push("apps");
+    pub fn get_seed_root(&self) -> PathBuf {
+        let mut seed_root = self.flora_root.clone();
+        seed_root.push("seeds");
 
-        app_root
+        seed_root
     }
     pub fn get_wine_root(&self) -> PathBuf {
         let mut wine_root = self.flora_root.clone();
@@ -107,7 +107,7 @@ impl FloraDirs {
     pub fn create_dirs(&self) {
         fs::create_dir_all(&self.flora_root).unwrap();
         fs::create_dir_all(&self.applications_entry_dir).unwrap();
-        fs::create_dir_all(&self.get_app_root()).unwrap();
+        fs::create_dir_all(&self.get_seed_root()).unwrap();
         fs::create_dir_all(&self.get_wine_root()).unwrap();
         fs::create_dir_all(&self.get_proton_root()).unwrap();
         fs::create_dir_all(&self.get_log_root()).unwrap();

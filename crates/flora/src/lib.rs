@@ -12,13 +12,13 @@ pub mod errors;
 
 /// Flora core manager
 ///
-/// Handles creation and deletion of apps
+/// Handles creation and deletion of seeds
 pub mod manager;
 
-/// Flora apps configuration
+/// Flora seed configuration
 ///
-/// Contains functions related to app configuration
-pub mod app;
+/// Contains functions related to Flora seeds. Flora seeds are a single Wine or Proton configuration, with its own WINEPREFIX.
+pub mod seed;
 
 /// Flora response items
 ///
@@ -26,5 +26,5 @@ pub mod app;
 pub mod responses;
 
 /// Flora runners
-/// Contains functionality to launch apps
+/// Contains functionality to launch seeds
 mod runners;

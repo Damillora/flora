@@ -1,50 +1,50 @@
-use crate::app::FloraApp;
+use crate::seed::FloraSeed;
 
-pub struct FloraAppListItem {
+pub struct FloraSeedItem {
     pub name: String,
     pub pretty_name: String,
     pub executable_location: String,
 
-    pub app_type: FloraAppTypeListItem,
+    pub seed_type: FloraSeedTypeItem,
 }
 
-pub enum FloraAppTypeListItem {
-    Wine(FloraAppWineListItem),
-    Proton(FloraAppProtonListItem),
+pub enum FloraSeedTypeItem {
+    Wine(FloraWineSeedItem),
+    Proton(FloraProtonSeedItem),
 }
 
-pub struct FloraAppWineListItem {
+pub struct FloraWineSeedItem {
     pub wine_prefix: Option<String>,
     pub wine_runtime: Option<String>,
 }
 
-pub struct FloraAppProtonListItem {
+pub struct FloraProtonSeedItem {
     pub proton_prefix: Option<String>,
     pub proton_runtime: Option<String>,
     pub game_id: Option<String>,
     pub store: Option<String>,
 }
 
-impl FloraAppListItem {
-    pub(crate) fn from_config(name: &String, config: &FloraApp) -> FloraAppListItem {
-        FloraAppListItem {
+impl FloraSeedItem {
+    pub(crate) fn from_config(name: &String, config: &FloraSeed) -> FloraSeedItem {
+        FloraSeedItem {
             name: String::from(name),
             pretty_name: config.pretty_name.clone(),
             executable_location: config.executable_location.clone(),
 
-            app_type: match &config.app_type {
-                crate::app::FloraAppType::Wine(flora_app_wine_config) => {
-                    FloraAppTypeListItem::Wine(FloraAppWineListItem {
-                        wine_prefix: flora_app_wine_config.wine_prefix.clone(),
-                        wine_runtime: flora_app_wine_config.wine_runtime.clone(),
+            seed_type: match &config.seed_type {
+                crate::seed::FloraSeedType::Wine(flora_wine_seed) => {
+                    FloraSeedTypeItem::Wine(FloraWineSeedItem {
+                        wine_prefix: flora_wine_seed.wine_prefix.clone(),
+                        wine_runtime: flora_wine_seed.wine_runtime.clone(),
                     })
                 }
-                crate::app::FloraAppType::Proton(flora_app_proton_config) => {
-                    FloraAppTypeListItem::Proton(FloraAppProtonListItem {
-                        proton_prefix: flora_app_proton_config.proton_prefix.clone(),
-                        proton_runtime: flora_app_proton_config.proton_runtime.clone(),
-                        game_id: flora_app_proton_config.game_id.clone(),
-                        store: flora_app_proton_config.store.clone(),
+                crate::seed::FloraSeedType::Proton(flora_proton_seed) => {
+                    FloraSeedTypeItem::Proton(FloraProtonSeedItem {
+                        proton_prefix: flora_proton_seed.proton_prefix.clone(),
+                        proton_runtime: flora_proton_seed.proton_runtime.clone(),
+                        game_id: flora_proton_seed.game_id.clone(),
+                        store: flora_proton_seed.store.clone(),
                     })
                 }
             },
