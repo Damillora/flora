@@ -2,7 +2,11 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{config::FloraConfig, errors::FloraError};
+use crate::{
+    config::FloraConfig,
+    errors::FloraError,
+    requests::{FloraCreateSeed, FloraUpdateSeed},
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -40,33 +44,48 @@ pub(crate) struct FloraSeedApp {
     pub application_name: String,
     pub application_location: String,
 }
+// Instance functions
+impl FloraSeed {
+    pub(crate) fn merge_options(&mut self, seed_opts: &FloraUpdateSeed) -> Result<(), FloraError> {
+        match (seed_opts, &mut self.seed_type) {
+            (
+                FloraUpdateSeed::WineOptions(flora_update_wine_seed),
+                FloraSeedType::Wine(flora_wine_seed),
+            ) => {
+                if let Some(wine_prefix) = flora_update_wine_seed.wine_prefix.clone() {
+                    flora_wine_seed.wine_prefix = Some(wine_prefix);
+                }
+                if let Some(wine_runtime) = flora_update_wine_seed.wine_runtime.clone() {
+                    flora_wine_seed.wine_runtime = Some(wine_runtime);
+                }
 
-pub enum FloraCreateSeed {
-    WineOptions(FloraCreateWineSeed),
-    ProtonOptions(FloraCreateProtonSeed),
+                Ok(())
+            }
+            (
+                FloraUpdateSeed::ProtonOptions(flora_update_proton_seed),
+                FloraSeedType::Proton(flora_proton_seed),
+            ) => {
+                if let Some(proton_prefix) = flora_update_proton_seed.proton_prefix.clone() {
+                    flora_proton_seed.proton_prefix = Some(proton_prefix);
+                }
+                if let Some(proton_runtime) = flora_update_proton_seed.proton_runtime.clone() {
+                    flora_proton_seed.proton_runtime = Some(proton_runtime);
+                }
+                if let Some(game_id) = flora_update_proton_seed.game_id.clone() {
+                    flora_proton_seed.game_id = Some(game_id);
+                }
+                if let Some(store) = flora_update_proton_seed.store.clone() {
+                    flora_proton_seed.store = Some(store);
+                }
+
+                Ok(())
+            }
+            _ => Err(FloraError::SeedUpdateMismatch),
+        }
+    }
 }
 
-pub struct FloraCreateSeedApp {
-    pub application_name: String,
-    pub application_location: String,
-}
-
-pub struct FloraCreateWineSeed {
-    pub default_application_name: Option<String>,
-    pub default_application_location: String,
-    pub wine_prefix: Option<String>,
-    pub wine_runner: Option<String>,
-}
-
-pub struct FloraCreateProtonSeed {
-    pub default_application_name: Option<String>,
-    pub default_application_location: String,
-    pub proton_prefix: Option<String>,
-    pub proton_runtime: Option<String>,
-    pub game_id: Option<String>,
-    pub store: Option<String>,
-}
-
+// Static functions
 impl FloraSeed {
     /// Converts Options passed from the frontend into a Seed, the actual configuration format used to launch Flora seeds.
     pub(crate) fn from_options(

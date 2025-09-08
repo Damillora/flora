@@ -10,9 +10,10 @@ use crate::{
     config::FloraConfig,
     dirs::FloraDirs,
     errors::FloraError,
+    requests::{FloraCreateSeed, FloraUpdateSeed},
     responses::FloraSeedItem,
     runners,
-    seed::{FloraCreateSeed, FloraSeed},
+    seed::FloraSeed,
 };
 
 /// Manages Flora seeds configurations
@@ -39,11 +40,20 @@ impl FloraManager {
     }
 
     fn read_seed_config(&self, name: &String) -> Result<FloraSeed, FloraError> {
-        let seed_config_path = self.seed_path(name);
-        let config_toml = fs::read_to_string(&seed_config_path)?;
-        let config: FloraSeed = toml::from_str(config_toml.as_str())?;
+        let seed_path = self.seed_path(name);
+        let seed_toml = fs::read_to_string(&seed_path)?;
+        let seed: FloraSeed = toml::from_str(seed_toml.as_str())?;
 
-        Ok(config)
+        Ok(seed)
+    }
+
+    fn write_seed_config(&self, name: &String, seed: &FloraSeed) -> Result<(), FloraError> {
+        let seed_toml = toml::to_string(seed)?;
+
+        let seed_path = self.seed_path(name);
+        fs::write(seed_path, seed_toml)?;
+
+        Ok(())
     }
 
     /// Creates a new Flora seed
@@ -75,25 +85,48 @@ impl FloraManager {
 
         Ok(())
     }
-
-    /// Deletes new Flora seed
-    pub fn delete_seed(&self, name: &String) -> Result<(), FloraError> {
+    /// Edit seed
+    pub fn update_seed(&self, name: &String, upd_data: &FloraUpdateSeed) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound);
         }
 
-        let new_seed_location = self.seed_path(name);
+        let seed_location = self.seed_path(name);
 
         debug!(
-            "Deleting seed at {}",
-            &new_seed_location
+            "Updating seed at {}",
+            &seed_location
                 .clone()
                 .into_os_string()
                 .into_string()
                 .map_err(|_| FloraError::InternalError)?
         );
 
-        fs::remove_file(&new_seed_location)?;
+        let mut seed_config = self.read_seed_config(name)?;
+        seed_config.merge_options(upd_data)?;
+
+        self.write_seed_config(name, &seed_config)?;
+
+        Ok(())
+    }
+    /// Deletes new Flora seed
+    pub fn delete_seed(&self, name: &String) -> Result<(), FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
+        }
+
+        let seed_location = self.seed_path(name);
+
+        debug!(
+            "Deleting seed at {}",
+            &seed_location
+                .clone()
+                .into_os_string()
+                .into_string()
+                .map_err(|_| FloraError::InternalError)?
+        );
+
+        fs::remove_file(&seed_location)?;
 
         Ok(())
     }

@@ -20,9 +20,10 @@ pub mod manager;
 /// Contains functions related to Flora seeds. Flora seeds are a single Wine or Proton configuration, with its own WINEPREFIX.
 pub mod seed;
 
-/// Flora response items
-///
-/// Contain response structs
+/// Flora request structs
+pub mod requests;
+
+/// Flora response structs
 pub mod responses;
 
 /// Flora runners

@@ -2,8 +2,11 @@ use clap::{Args, Parser, Subcommand};
 use flora::{
     errors::FloraError,
     manager::FloraManager,
+    requests::{
+        FloraCreateProtonSeed, FloraCreateSeed, FloraCreateWineSeed, FloraUpdateProtonSeed,
+        FloraUpdateSeed, FloraUpdateWineSeed,
+    },
     responses::{FloraSeedAppItem, FloraSeedItem},
-    seed::{FloraCreateProtonSeed, FloraCreateSeed, FloraCreateWineSeed},
 };
 use tabled::{
     Table, Tabled,
@@ -26,6 +29,8 @@ pub struct Cli {
 pub enum Commands {
     /// Creates a seed
     Create(CreateOpts),
+    /// Set a seed's properties
+    Set(SetOpts),
     /// Removes a seed
     Delete(DeleteOpts),
     /// Lists seeds
@@ -101,6 +106,63 @@ pub struct CreateProtonOpts {
 }
 
 #[derive(Args)]
+pub struct SetOpts {
+    #[command(subcommand)]
+    commands: SetCommands,
+}
+
+#[derive(Subcommand)]
+pub enum SetCommands {
+    /// Set properties of a Wine seed
+    Wine(SetWineOpts),
+    /// Set propeties of a Proton seed
+    Proton(SetProtonOpts),
+}
+
+#[derive(Args)]
+pub struct SetSeedOpts {
+    /// Name of seed
+    name: String,
+}
+#[derive(Args)]
+pub struct SetWineOpts {
+    #[command(flatten)]
+    seed: SetSeedOpts,
+
+    /// Wine prefix for the seed
+    #[arg(short = 'p', long)]
+    wine_prefix: Option<String>,
+    /// Wine runtime for the seed
+    #[arg(short = 'r', long)]
+    wine_runtime: Option<String>,
+}
+
+#[derive(Args)]
+pub struct SetProtonOpts {
+    #[command(flatten)]
+    seed: SetSeedOpts,
+
+    /// Proton prefix for the seed
+    #[arg(short = 'p', long)]
+    proton_prefix: Option<String>,
+    /// Proton runtime for the seed
+    #[arg(short = 'r', long)]
+    proton_runtime: Option<String>,
+    #[arg(short = 'g', long)]
+    /// Game ID to be passed to umu-launcher
+    game_id: Option<String>,
+    #[arg(short = 's', long)]
+    /// Store to be passed to umu-launcher
+    store: Option<String>,
+}
+
+#[derive(Args)]
+pub struct DeleteOpts {
+    /// Name of seed
+    name: String,
+}
+
+#[derive(Args)]
 pub struct ListOpts {
     #[arg(short = 'l', long)]
     /// Long format of list
@@ -108,12 +170,6 @@ pub struct ListOpts {
 }
 #[derive(Args)]
 pub struct ShowOpts {
-    /// Name of seed
-    name: String,
-}
-
-#[derive(Args)]
-pub struct DeleteOpts {
     /// Name of seed
     name: String,
 }
@@ -221,6 +277,27 @@ fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result
 
     manager.create_seed(&args.seed.name, &seed)
 }
+
+fn set_wine_seed(manager: &FloraManager, args: &SetWineOpts) -> Result<(), FloraError> {
+    let seed_opts = FloraUpdateSeed::WineOptions(FloraUpdateWineSeed {
+        wine_prefix: args.wine_prefix.clone(),
+        wine_runtime: args.wine_runtime.clone(),
+    });
+    manager.update_seed(&args.seed.name, &seed_opts)?;
+    Ok(())
+}
+
+fn set_proton_seed(manager: &FloraManager, args: &SetProtonOpts) -> Result<(), FloraError> {
+    let seed_opts = FloraUpdateSeed::ProtonOptions(FloraUpdateProtonSeed {
+        proton_prefix: args.proton_prefix.clone(),
+        proton_runtime: args.proton_runtime.clone(),
+        game_id: args.game_id.clone(),
+        store: args.store.clone(),
+    });
+
+    manager.update_seed(&args.seed.name, &seed_opts)?;
+    Ok(())
+}
 fn main() -> Result<(), FloraError> {
     env_logger::init();
     let cli = Cli::parse();
@@ -231,6 +308,10 @@ fn main() -> Result<(), FloraError> {
         Commands::Create(create_opts) => match &create_opts.commands {
             CreateCommands::Wine(args) => create_wine_seed(&manager, args),
             CreateCommands::Proton(args) => create_proton_seed(&manager, args),
+        },
+        Commands::Set(create_opts) => match &create_opts.commands {
+            SetCommands::Wine(args) => set_wine_seed(&manager, args),
+            SetCommands::Proton(args) => set_proton_seed(&manager, args),
         },
         Commands::Delete(args) => manager.delete_seed(&args.name),
         Commands::List(args) => {
