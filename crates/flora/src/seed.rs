@@ -29,11 +29,16 @@ pub(crate) struct FloraProtonSeed {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct FloraSeed {
-    pub pretty_name: String,
-    pub executable_location: String,
+    pub apps: Vec<FloraSeedApp>,
 
     #[serde(flatten)]
     pub seed_type: FloraSeedType,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct FloraSeedApp {
+    pub application_name: String,
+    pub application_location: String,
 }
 
 pub enum FloraCreateSeed {
@@ -41,16 +46,21 @@ pub enum FloraCreateSeed {
     ProtonOptions(FloraCreateProtonSeed),
 }
 
+pub struct FloraCreateSeedApp {
+    pub application_name: String,
+    pub application_location: String,
+}
+
 pub struct FloraCreateWineSeed {
-    pub pretty_name: Option<String>,
-    pub executable_location: String,
+    pub default_application_name: Option<String>,
+    pub default_application_location: String,
     pub wine_prefix: Option<String>,
     pub wine_runner: Option<String>,
 }
 
 pub struct FloraCreateProtonSeed {
-    pub pretty_name: Option<String>,
-    pub executable_location: String,
+    pub default_application_name: Option<String>,
+    pub default_application_location: String,
     pub proton_prefix: Option<String>,
     pub proton_runtime: Option<String>,
     pub game_id: Option<String>,
@@ -69,11 +79,13 @@ impl FloraSeed {
             FloraCreateSeed::WineOptions(opts) => {
                 if let Some(wine_opts) = &config.wine {
                     Ok(FloraSeed {
-                        pretty_name: match &opts.pretty_name {
-                            Some(pretty_name) => pretty_name.to_owned(),
-                            None => name.to_owned(),
-                        },
-                        executable_location: opts.executable_location.to_owned(),
+                        apps: vec![FloraSeedApp {
+                            application_name: match &opts.default_application_name {
+                                Some(pretty_name) => pretty_name.to_owned(),
+                                None => name.to_owned(),
+                            },
+                            application_location: opts.default_application_location.to_owned(),
+                        }],
 
                         seed_type: FloraSeedType::Wine(FloraWineSeed {
                             wine_prefix: {
@@ -110,11 +122,13 @@ impl FloraSeed {
             FloraCreateSeed::ProtonOptions(opts) => {
                 if let Some(proton_opts) = &config.proton {
                     Ok(FloraSeed {
-                        pretty_name: match &opts.pretty_name {
-                            Some(pretty_name) => pretty_name.to_owned(),
-                            None => name.to_owned(),
-                        },
-                        executable_location: opts.executable_location.to_owned(),
+                        apps: vec![FloraSeedApp {
+                            application_name: match &opts.default_application_name {
+                                Some(pretty_name) => pretty_name.to_owned(),
+                                None => name.to_owned(),
+                            },
+                            application_location: opts.default_application_location.to_owned(),
+                        }],
                         seed_type: FloraSeedType::Proton(FloraProtonSeed {
                             proton_prefix: match opts.proton_prefix.to_owned() {
                                 None => Some(proton_opts.default_proton_prefix.clone()),

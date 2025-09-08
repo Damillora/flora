@@ -2,9 +2,7 @@ use crate::seed::FloraSeed;
 
 pub struct FloraSeedItem {
     pub name: String,
-    pub pretty_name: String,
-    pub executable_location: String,
-
+    pub apps: Vec<FloraSeedAppItem>,
     pub seed_type: FloraSeedTypeItem,
 }
 
@@ -25,13 +23,24 @@ pub struct FloraProtonSeedItem {
     pub store: Option<String>,
 }
 
+pub struct FloraSeedAppItem {
+    pub application_name: String,
+    pub application_location: String,
+}
+
 impl FloraSeedItem {
     pub(crate) fn from_config(name: &String, config: &FloraSeed) -> FloraSeedItem {
         FloraSeedItem {
             name: String::from(name),
-            pretty_name: config.pretty_name.clone(),
-            executable_location: config.executable_location.clone(),
 
+            apps: config
+                .apps
+                .iter()
+                .map(|item| FloraSeedAppItem {
+                    application_name: item.application_name.clone(),
+                    application_location: item.application_location.clone(),
+                })
+                .collect(),
             seed_type: match &config.seed_type {
                 crate::seed::FloraSeedType::Wine(flora_wine_seed) => {
                     FloraSeedTypeItem::Wine(FloraWineSeedItem {

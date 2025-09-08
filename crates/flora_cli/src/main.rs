@@ -2,13 +2,13 @@ use clap::{Args, Parser, Subcommand};
 use flora::{
     errors::FloraError,
     manager::FloraManager,
-    responses::FloraSeedItem,
+    responses::{FloraSeedAppItem, FloraSeedItem},
     seed::{FloraCreateProtonSeed, FloraCreateSeed, FloraCreateWineSeed},
 };
 use tabled::{
     Table, Tabled,
     settings::{
-        Alignment, Color, Style, Width,
+        Alignment, Color, Style,
         object::{Columns, Rows},
         themes::Colorization,
     },
@@ -25,25 +25,25 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Creates a seed
-    Create(CreateArgs),
+    Create(CreateOpts),
     /// Removes a seed
-    Delete(DeleteArgs),
+    Delete(DeleteOpts),
     /// Lists seeds
-    List(ListArgs),
+    List(ListOpts),
     /// Show a seed's configuration
-    Show(ShowArgs),
+    Show(ShowOpts),
     /// Launches a configuration tool inside the seed's prefix
-    Config(RunArgs),
+    Config(RunOpts),
     /// Launches wine(proton)tricks for a seed's prefix
-    Tricks(RunArgs),
+    Tricks(RunOpts),
     /// Runs an app or another executable in a seed
-    Run(RunArgs),
+    Run(RunOpts),
     /// Creates a .desktop entry to launch applications inside a seed from the application menu
     Desktop(DesktopArgs),
 }
 
 #[derive(Args)]
-pub struct CreateArgs {
+pub struct CreateOpts {
     #[command(subcommand)]
     commands: CreateCommands,
 }
@@ -51,13 +51,13 @@ pub struct CreateArgs {
 #[derive(Subcommand)]
 pub enum CreateCommands {
     /// Create a Wine seed
-    Wine(CreateWineArgs),
+    Wine(CreateWineOpts),
     /// Create a Proton seed
-    Proton(CreateProtonArgs),
+    Proton(CreateProtonOpts),
 }
 
 #[derive(Args)]
-pub struct CreateSeedArgs {
+pub struct CreateSeedOpts {
     /// Name of seed
     name: String,
 
@@ -70,9 +70,9 @@ pub struct CreateSeedArgs {
 }
 
 #[derive(Args)]
-pub struct CreateWineArgs {
+pub struct CreateWineOpts {
     #[command(flatten)]
-    seed: CreateSeedArgs,
+    seed: CreateSeedOpts,
 
     /// Wine prefix for the seed
     #[arg(short = 'p', long)]
@@ -82,9 +82,9 @@ pub struct CreateWineArgs {
     wine_runtime: Option<String>,
 }
 #[derive(Args)]
-pub struct CreateProtonArgs {
+pub struct CreateProtonOpts {
     #[command(flatten)]
-    seed: CreateSeedArgs,
+    seed: CreateSeedOpts,
 
     /// Proton prefix for the seed
     #[arg(short = 'p', long)]
@@ -101,34 +101,36 @@ pub struct CreateProtonArgs {
 }
 
 #[derive(Args)]
-pub struct ListArgs {
+pub struct ListOpts {
     #[arg(short = 'l', long)]
     /// Long format of list
     long: bool,
 }
 #[derive(Args)]
-pub struct ShowArgs {
+pub struct ShowOpts {
     /// Name of seed
     name: String,
 }
 
 #[derive(Args)]
-pub struct DeleteArgs {
+pub struct DeleteOpts {
     /// Name of seed
     name: String,
 }
 
 #[derive(Args)]
-pub struct RunArgs {
+pub struct RunOpts {
     /// Name of seed
     name: String,
     /// Launch the specified app
     args: Option<Vec<String>>,
 
+    /// Run an app entry
+    #[arg(short, long)]
+    app: bool,
     /// Redirect program output to flora logs
     #[arg(short, long)]
     quiet: bool,
-
     /// Wait until the app exits
     #[arg(short, long)]
     wait: bool,
@@ -144,12 +146,17 @@ pub struct DesktopArgs {
 #[tabled(rename_all = "Upper Title Case")]
 pub struct SeedTableRow {
     pub name: String,
-    pub pretty_name: String,
-    pub executable_location: String,
     pub prefix: String,
     pub runtime: String,
     pub game_id: String,
     pub store: String,
+}
+
+#[derive(Tabled)]
+#[tabled(rename_all = "Upper Title Case")]
+pub struct SeedAppTableRow {
+    pub application_name: String,
+    pub application_location: String,
 }
 
 impl From<&FloraSeedItem> for SeedTableRow {
@@ -157,8 +164,6 @@ impl From<&FloraSeedItem> for SeedTableRow {
         match &item.seed_type {
             flora::responses::FloraSeedTypeItem::Wine(conf) => SeedTableRow {
                 name: item.name.clone(),
-                pretty_name: item.pretty_name.clone(),
-                executable_location: item.executable_location.clone(),
                 prefix: conf.wine_prefix.clone().unwrap_or_default(),
                 runtime: conf.wine_runtime.clone().unwrap_or_default(),
                 game_id: String::new(),
@@ -166,8 +171,6 @@ impl From<&FloraSeedItem> for SeedTableRow {
             },
             flora::responses::FloraSeedTypeItem::Proton(conf) => SeedTableRow {
                 name: item.name.clone(),
-                pretty_name: item.pretty_name.clone(),
-                executable_location: item.executable_location.clone(),
                 prefix: conf.proton_prefix.clone().unwrap_or_default(),
                 runtime: conf.proton_runtime.clone().unwrap_or_default(),
                 game_id: conf.game_id.clone().unwrap_or_default(),
@@ -176,11 +179,19 @@ impl From<&FloraSeedItem> for SeedTableRow {
         }
     }
 }
+impl From<&FloraSeedAppItem> for SeedAppTableRow {
+    fn from(item: &FloraSeedAppItem) -> Self {
+        SeedAppTableRow {
+            application_name: item.application_name.clone(),
+            application_location: item.application_location.clone(),
+        }
+    }
+}
 
-fn create_wine_seed(manager: &FloraManager, args: &CreateWineArgs) -> Result<(), FloraError> {
+fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::WineOptions(FloraCreateWineSeed {
-        pretty_name: args.seed.default_application_name.clone(),
-        executable_location: args
+        default_application_name: args.seed.default_application_name.clone(),
+        default_application_location: args
             .seed
             .default_executable_location
             .clone()
@@ -193,10 +204,10 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineArgs) -> Result<(),
     manager.create_seed(&args.seed.name, &seed)
 }
 
-fn create_proton_seed(manager: &FloraManager, args: &CreateProtonArgs) -> Result<(), FloraError> {
+fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::ProtonOptions(FloraCreateProtonSeed {
-        pretty_name: args.seed.default_application_name.clone(),
-        executable_location: args
+        default_application_name: args.seed.default_application_name.clone(),
+        default_application_location: args
             .seed
             .default_executable_location
             .clone()
@@ -231,7 +242,6 @@ fn main() -> Result<(), FloraError> {
                 table.with(Style::blank());
                 table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
                 table.modify(Columns::first(), Alignment::left());
-                table.modify(Rows::new(0..), Width::truncate(30).suffix("..."));
 
                 println!("{}", table);
             } else {
@@ -250,9 +260,10 @@ fn main() -> Result<(), FloraError> {
         }
 
         Commands::Show(args) => {
-            let seed = SeedTableRow::from(&manager.show_seed(&args.name)?);
+            let seed = manager.show_seed(&args.name)?;
+            let seed_table = SeedTableRow::from(&seed);
 
-            let mut table = Table::kv(vec![seed]);
+            let mut table = Table::kv(vec![seed_table]);
             table.with(Style::blank());
             table.with(Colorization::exact(
                 [Color::FG_BRIGHT_BLUE],
@@ -261,6 +272,18 @@ fn main() -> Result<(), FloraError> {
             table.modify(Columns::first(), Alignment::left());
 
             println!("{}", table);
+            println!("List of apps:");
+            for app in seed.apps {
+                let app_table = SeedAppTableRow::from(&app);
+                let mut table = Table::kv(vec![app_table]);
+                table.with(Style::blank());
+                table.with(Colorization::exact(
+                    [Color::FG_BRIGHT_BLUE],
+                    Columns::first(),
+                ));
+                table.modify(Columns::first(), Alignment::left());
+                println!("{}", table);
+            }
 
             Ok(())
         }
@@ -270,7 +293,22 @@ fn main() -> Result<(), FloraError> {
         Commands::Tricks(args) => {
             manager.seed_tricks(&args.name, &args.args, args.quiet, args.wait)
         }
-        Commands::Run(args) => manager.seed_run(&args.name, &args.args, args.quiet, args.wait),
+        Commands::Run(opts) => {
+            match &opts.args {
+                Some(args) => {
+                    if opts.app {
+                        // Launch an app entry
+                        let joined_args = args.join(" ").to_string();
+                        manager.seed_run_app(&opts.name, &Some(joined_args), opts.quiet, opts.wait)
+                    } else {
+                        // Launch executable
+                        manager.seed_run_executable(&opts.name, &args, opts.quiet, opts.wait)
+                    }
+                }
+                // Launch the default app entry if none is specified
+                None => manager.seed_run_app(&opts.name, &None, opts.quiet, opts.wait),
+            }
+        }
         Commands::Desktop(args) => manager.create_desktop_entry(&args.name),
     }
 }

@@ -11,6 +11,10 @@ pub enum FloraError {
     /// Seed is not found
     SeedNotFound,
 
+    /// Seed has no default app
+    SeedNoDefaultApp,
+    /// Seed has no specified app
+    SeedNoApp,
     /// Incorrect runner is invoked
     IncorrectRunner,
 
@@ -34,6 +38,8 @@ impl fmt::Debug for FloraError {
             Self::InternalError => write!(f, "An internal error has occured"),
             Self::SeedExists => write!(f, "Seed already exists"),
             Self::SeedNotFound => write!(f, "Seed does not exist"),
+            Self::SeedNoDefaultApp => write!(f, "Seed does not have a default app"),
+            Self::SeedNoApp => write!(f, "Seed does not have this app"),
             Self::IncorrectRunner => write!(f, "Incorrect runner has been invoked"),
             Self::MissingRunner => write!(f, "Cannot find runner"),
             Self::MissingRunnerConfig => write!(f, "Cannot find config for runner"),

@@ -208,32 +208,38 @@ pub fn create_desktop_entry(
     // Initialize menus
     desktop::initialize_desktop_entries(&dirs)?;
 
-    // Create desktop entry files
-    let desktop_entry = format!(
-        "[Desktop Entry]
+    for app in seed.apps.iter() {
+        // Create desktop entry files
+        let desktop_entry = format!(
+            "[Desktop Entry]
 Type=Application
 Categories=X-Flora
 Name={}
 Icon={}
-Exec=flora run -w {}
+Exec=flora run -a -w {} \"{}\"
 Comment=Run {} with Flora using Proton
 Terminal=false",
-        seed.pretty_name, "applications-other", name, seed.pretty_name
-    );
+            app.application_name,
+            "applications-other",
+            name,
+            app.application_name,
+            app.application_name
+        );
 
-    let desktop_entry_location = dirs.get_desktop_entry_file(&name);
+        let desktop_entry_location = dirs.get_desktop_entry_file(&name, &app.application_name);
 
-    debug!(
-        "Writing {} desktop entry to {}",
-        name,
-        desktop_entry_location
-            .clone()
-            .into_os_string()
-            .into_string()
-            .map_err(|_| FloraError::InternalError)?
-    );
+        debug!(
+            "Writing {} desktop entry to {}",
+            name,
+            desktop_entry_location
+                .clone()
+                .into_os_string()
+                .into_string()
+                .map_err(|_| FloraError::InternalError)?
+        );
 
-    fs::write(desktop_entry_location, desktop_entry)?;
+        fs::write(desktop_entry_location, desktop_entry)?;
+    }
 
     Ok(())
 }

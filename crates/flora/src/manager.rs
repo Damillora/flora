@@ -178,11 +178,50 @@ impl FloraManager {
         )
     }
 
-    /// Launches an executable inside an seed's prefix
-    pub fn seed_run(
+    /// Launches an app entry inside an seed's prefix
+    pub fn seed_run_app(
         &self,
         name: &String,
-        args: &Option<Vec<String>>,
+        app_name: &Option<String>,
+        quiet: bool,
+        wait: bool,
+    ) -> Result<(), FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
+        }
+        let seed_config = self.read_seed_config(&name)?;
+
+        let app_entry = match &app_name {
+            Some(app_name) => seed_config
+                .apps
+                .iter()
+                .find(|item| &item.application_name == app_name),
+            None => seed_config.apps.first(),
+        };
+
+        if let Some(app_entry) = app_entry {
+            // Determine arguments to be passed to runner
+            let new_args = &vec![app_entry.application_location.clone()];
+
+            runners::run_seed_executable(
+                &name,
+                &self.flora_dirs,
+                &self.config,
+                &seed_config,
+                new_args,
+                quiet,
+                wait,
+            )
+        } else {
+            Err(FloraError::SeedNoApp)
+        }
+    }
+
+    /// Launches an executable inside an seed's prefix
+    pub fn seed_run_executable(
+        &self,
+        name: &String,
+        args: &Vec<String>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
@@ -192,10 +231,9 @@ impl FloraManager {
 
         let seed_config = self.read_seed_config(&name)?;
 
-        let new_args = match args {
-            Some(args) => args,
-            None => &vec![seed_config.executable_location.clone()],
-        };
+        // Determine arguments to be passed to runner
+        let new_args = args;
+
         runners::run_seed_executable(
             &name,
             &self.flora_dirs,
