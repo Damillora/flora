@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf, process::Stdio};
 
 use log::{debug, info};
+use walkdir::WalkDir;
 
 use crate::{
     config::FloraConfig,
@@ -108,6 +109,102 @@ fn ensure_proton_prefix(proton_prefix: &PathBuf) -> Result<(), FloraError> {
     }
 
     Ok(())
+}
+
+fn get_start_menu_dir(
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    proton_seed: &FloraProtonSeed,
+) -> PathBuf {
+    let mut proton_prefix = get_proton_prefix(dirs, config, proton_seed);
+    proton_prefix.push("drive_c/users");
+    proton_prefix.push("steamuser");
+    proton_prefix.push("AppData/Roaming/Microsoft/Windows/Start Menu");
+
+    proton_prefix
+}
+
+pub fn find_start_menu_entry_location(
+    name: &str,
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    seed: &FloraSeed,
+    menu_name: &String,
+) -> Result<String, FloraError> {
+    if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
+        let start_menu_dir = get_start_menu_dir(dirs, config, proton_seed);
+
+        for entry in WalkDir::new(start_menu_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            if let Some(file_name) = entry.path().file_name()
+                && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
+            {
+                debug!("Found Start Menu item: {}", entry.path().display());
+                let path = String::from(entry.path().to_str().unwrap_or_default());
+
+                // Use winepath to get Windows location
+                let mut winepath = run_proton_executable_value(
+                    name,
+                    dirs,
+                    config,
+                    seed,
+                    &vec![String::from("winepath"), String::from("--windows"), path],
+                )?;
+                winepath = winepath.trim().to_string();
+
+                debug!("Winepath: {}", winepath);
+                return Ok(winepath);
+            }
+        }
+
+        Err(FloraError::StartMenuNotFound)
+    } else {
+        Err(FloraError::IncorrectRunner)
+    }
+}
+
+/// Run something in wine
+fn run_proton_executable_value(
+    name: &str,
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    seed: &FloraSeed,
+    args: &Vec<String>,
+) -> Result<String, FloraError> {
+    if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
+        let proton_tool = get_proton_tool(dirs, config, proton_seed)?;
+        let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
+
+        ensure_proton_tool(&proton_tool)?;
+        ensure_proton_prefix(&proton_prefix)?;
+
+        debug!("Using {} to launch {}", "umu-run", args.join(" "));
+
+        use std::process::Command;
+        let mut command = Command::new("umu-run");
+        command
+            .env("WINEPREFIX", proton_prefix)
+            .env("PROTONPATH", proton_tool)
+            .args(args);
+
+        if let Some(game_id) = &proton_seed.game_id {
+            command.env("GAMEID", game_id);
+        }
+        if let Some(store) = &proton_seed.store {
+            command.env("STORE", store);
+        }
+        let log_err = dirs.get_log_file(name)?;
+        command.stdin(Stdio::null()).stderr(log_err);
+
+        let output = command.output()?;
+        let result = String::from_utf8(output.stdout).map_err(|_| FloraError::InternalError)?;
+
+        Ok(result)
+    } else {
+        Err(FloraError::IncorrectRunner)
+    }
 }
 
 /// Run something in wine

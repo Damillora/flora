@@ -81,14 +81,18 @@ pub struct CreateSeedOpts {
     /// Name of seed
     name: String,
 
+    #[clap(flatten)]
+    default_opts: Option<CreateSeedDefaultOpts>,
+}
+#[derive(Args)]
+pub struct CreateSeedDefaultOpts {
     /// Default application name for the seed
     #[arg(short = 'n', long)]
-    default_application_name: Option<String>,
+    default_application_name: String,
     /// Default executable location for the seed, passed to wine or proton.
     #[arg(short = 'l', long)]
-    default_application_location: Option<String>,
+    default_application_location: String,
 }
-
 #[derive(Args)]
 pub struct CreateWineOpts {
     #[command(flatten)]
@@ -207,6 +211,8 @@ pub enum AppCommands {
     Rename(AppRenameOpts),
     /// Removes an app from a seed
     Delete(AppDeleteOpts),
+    /// Adds a start menu entry as an app to a seed
+    StartMenu(AppStartMenuOpts),
 }
 #[derive(Args)]
 pub struct AppSeedOpts {
@@ -263,6 +269,14 @@ pub struct AppDeleteOpts {
     seed: AppSeedOpts,
 
     /// Name for the app
+    application_name: String,
+}
+#[derive(Args)]
+pub struct AppStartMenuOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Name of the Start Menu entry
     application_name: String,
 }
 
@@ -338,17 +352,12 @@ impl From<&FloraSeedAppItem> for SeedAppTableRow {
 
 fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::WineOptions(FloraCreateWineSeed {
-        default_application: match args.seed.default_application_name {
-            Some(_) => Some(FloraCreateSeedApp {
-                application_name: args.seed.default_application_name.clone().unwrap(),
-                application_location: args
-                    .seed
-                    .default_application_location
-                    .clone()
-                    .unwrap_or_default(),
-            }),
-            None => None,
-        },
+        default_application: args.seed.default_opts.as_ref().map(|default_opt| {
+            FloraCreateSeedApp {
+                application_name: default_opt.default_application_name.clone(),
+                application_location: default_opt.default_application_location.clone(),
+            }
+        }),
 
         wine_prefix: args.wine_prefix.clone(),
         wine_runner: args.wine_runtime.clone(),
@@ -359,17 +368,12 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
 
 fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::ProtonOptions(FloraCreateProtonSeed {
-        default_application: match args.seed.default_application_name {
-            Some(_) => Some(FloraCreateSeedApp {
-                application_name: args.seed.default_application_name.clone().unwrap(),
-                application_location: args
-                    .seed
-                    .default_application_location
-                    .clone()
-                    .unwrap_or_default(),
-            }),
-            None => None,
-        },
+        default_application: args.seed.default_opts.as_ref().map(|default_opt| {
+            FloraCreateSeedApp {
+                application_name: default_opt.default_application_name.clone(),
+                application_location: default_opt.default_application_location.clone(),
+            }
+        }),
 
         proton_prefix: args.proton_prefix.clone(),
         proton_runtime: args.proton_runtime.clone(),
@@ -516,6 +520,10 @@ fn main() -> Result<(), FloraError> {
                 &vec![FloraSeedAppOperations::Delete(FloraDeleteSeedApp {
                     application_name: app_delete_opts.application_name.clone(),
                 })],
+            ),
+            AppCommands::StartMenu(app_start_menu_opts) => manager.create_start_menu_app(
+                &app_start_menu_opts.seed.name,
+                &app_start_menu_opts.application_name,
             ),
         },
         Commands::Config(args) => {

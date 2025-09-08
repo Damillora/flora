@@ -20,9 +20,12 @@ pub enum FloraError {
 
     /// Incorrect update type on seed
     SeedUpdateMismatch,
+
+    /// Start Menu entry not found
+    StartMenuNotFound,
+
     /// Incorrect runner is invoked
     IncorrectRunner,
-
     /// Runner is not found
     MissingRunner,
     /// Config for runner is not found
@@ -49,6 +52,7 @@ impl fmt::Debug for FloraError {
             Self::SeedNoApp => write!(f, "Seed does not have this app"),
             Self::SeedAppExists => write!(f, "App already exists"),
             Self::SeedUpdateMismatch => write!(f, "Attempting to update the wrong seed type"),
+            Self::StartMenuNotFound => write!(f, "Cannot find Start Menu entry"),
             Self::IncorrectRunner => write!(f, "Incorrect runner has been invoked"),
             Self::MissingRunner => write!(f, "Cannot find runner"),
             Self::MissingRunnerConfig => write!(f, "Cannot find config for runner"),

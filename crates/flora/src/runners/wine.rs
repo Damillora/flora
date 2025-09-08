@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf, process::Stdio};
 
 use log::{debug, info};
+use walkdir::WalkDir;
 
 use crate::{
     config::FloraConfig,
@@ -78,6 +79,108 @@ fn ensure_wine_prefix(wine_prefix: &PathBuf) -> Result<(), FloraError> {
     }
 
     Ok(())
+}
+
+fn get_start_menu_dir(
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    wine_seed: &FloraWineSeed,
+) -> PathBuf {
+    let mut wine_prefix = get_wine_prefix(dirs, config, wine_seed);
+    wine_prefix.push("drive_c/users");
+    wine_prefix.push(whoami::username());
+    wine_prefix.push("AppData/Roaming/Microsoft/Windows/Start Menu");
+
+    wine_prefix
+}
+
+pub fn find_start_menu_entry_location(
+    name: &str,
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    seed: &FloraSeed,
+    menu_name: &String,
+) -> Result<String, FloraError> {
+    if let FloraSeedType::Wine(wine_seed) = &seed.seed_type {
+        let start_menu_dir = get_start_menu_dir(dirs, config, wine_seed);
+
+        for entry in WalkDir::new(start_menu_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            if let Some(file_name) = entry.path().file_name()
+                && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
+            {
+                debug!("Found Start Menu item: {}", entry.path().display());
+                let path = String::from(entry.path().to_str().unwrap_or_default());
+
+                // Use winepath to get Windows location
+                let mut winepath = run_wine_executable_value(
+                    name,
+                    dirs,
+                    config,
+                    seed,
+                    &vec![String::from("winepath"), String::from("--windows"), path],
+                )?;
+                winepath = winepath.trim().to_string();
+
+                debug!("Winepath: {}", winepath);
+                return Ok(winepath);
+            }
+        }
+
+        Err(FloraError::StartMenuNotFound)
+    } else {
+        Err(FloraError::IncorrectRunner)
+    }
+}
+
+/// Run something in wine
+fn run_wine_executable_value(
+    name: &str,
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    seed: &FloraSeed,
+    args: &Vec<String>,
+) -> Result<String, FloraError> {
+    if let FloraSeedType::Wine(wine_seed) = &seed.seed_type {
+        let wine_dir = get_wine_dir(dirs, config, wine_seed);
+        let wine_prefix = get_wine_prefix(dirs, config, wine_seed);
+
+        ensure_wine_dir(&wine_dir)?;
+        ensure_wine_prefix(&wine_prefix)?;
+
+        let mut wine_exe = wine_dir.clone();
+        if !wine_dir.as_os_str().is_empty() {
+            wine_exe.push("bin/wine");
+        } else {
+            // Use system wine
+            wine_exe.push("/usr/bin/wine");
+        }
+
+        debug!(
+            "Using {} to launch {}",
+            wine_exe
+                .clone()
+                .into_os_string()
+                .into_string()
+                .map_err(|_| FloraError::InternalError)?,
+            args.join(" ")
+        );
+
+        use std::process::Command;
+        let mut command = Command::new(wine_exe);
+        command.env("WINEPREFIX", wine_prefix).args(args);
+        let log_err = dirs.get_log_file(name)?;
+        command.stdin(Stdio::null()).stderr(log_err);
+
+        let output = command.output()?;
+        let result = String::from_utf8(output.stdout).map_err(|_| FloraError::InternalError)?;
+
+        Ok(result)
+    } else {
+        Err(FloraError::IncorrectRunner)
+    }
 }
 
 /// Run something in wine

@@ -10,7 +10,7 @@ use crate::{
     config::FloraConfig,
     dirs::FloraDirs,
     errors::FloraError,
-    requests::{FloraCreateSeed, FloraSeedAppOperations, FloraUpdateSeed},
+    requests::{FloraCreateSeed, FloraCreateSeedApp, FloraSeedAppOperations, FloraUpdateSeed},
     responses::FloraSeedItem,
     runners,
     seed::FloraSeed,
@@ -136,6 +136,32 @@ impl FloraManager {
         self.write_seed_config(name, &seed_config)?;
 
         Ok(())
+    }
+    /// Creates an app for seed from Start Menu item
+    pub fn create_start_menu_app(
+        &self,
+        name: &String,
+        menu_name: &String,
+    ) -> Result<(), FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
+        }
+
+        let seed_config = self.read_seed_config(name)?;
+
+        let start_menu_location = runners::get_start_menu_entry_location(
+            name,
+            &self.flora_dirs,
+            &self.config,
+            &seed_config,
+            menu_name,
+        )?;
+        let update_seed_operation = vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
+            application_name: menu_name.to_string(),
+            application_location: start_menu_location,
+        })];
+
+        self.update_seed_apps(name, &update_seed_operation)
     }
 
     /// Deletes new Flora seed
