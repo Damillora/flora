@@ -42,6 +42,9 @@ flora tricks windows_app
 # Add an app using Start Menu entries
 flora app start-menu "Windows App"
 # Generate menus 
+flora generate-menu
+# Run an app inside a seed
+flora run -a windows_app "Windows App"
 ```
 
 
