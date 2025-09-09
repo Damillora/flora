@@ -40,7 +40,7 @@ flora run windows_app ~/Documents/windows_app_installer.exe
 # Launch winetricks for seed prefix configuration
 flora tricks windows_app
 # Add an app using Start Menu entries
-flora app start-menu "Windows App"
+flora start-menu create-app "Windows App"
 # Generate menus 
 flora generate-menu
 # Run an app inside a seed
