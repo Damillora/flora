@@ -262,8 +262,9 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             let icon_path = self.dirs.get_icon_file(self.name, &app.application_name);
             let mut icon_name = String::from("applications-other");
 
-            if let FloraLink::Other = exe_find {
+            if let FloraLink::Other(location) = exe_find {
                 // Not an EXE or LNK, use other icon
+                icon_name = flora_icon::get_icon_name_from_path(&location)?;
             } else if let FloraLink::WindowsIco(ico_path) = exe_find {
                 let windows_ico_path = winepath::windows_to_unix(&wine_prefix, &ico_path);
                 debug!(

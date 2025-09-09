@@ -1,15 +1,32 @@
-use std::{fs, io::Cursor, path::PathBuf};
+use std::{
+    fs,
+    io::Cursor,
+    path::{Path, PathBuf},
+};
 
 use lnk::encoding::WINDOWS_1252;
 use log::debug;
 use pelite::{FileMap, pe32, pe64, resources::FindError};
 use png::EncodingError;
+use xdg_mime::SharedMimeInfo;
 
 pub enum FloraLink {
     LinuxExe(PathBuf),
     WindowsIco(String),
     WindowsExe(String),
-    Other,
+    Other(PathBuf),
+}
+
+pub fn get_icon_name_from_path(lnk_location: &Path) -> Result<String, FloraLinkError> {
+    let mime_db = SharedMimeInfo::new();
+    let mut guess_builder = mime_db.guess_mime_type();
+    let guess = guess_builder
+        .file_name(lnk_location.to_str().unwrap())
+        .guess();
+
+    Ok(mime_db
+        .lookup_generic_icon_name(guess.mime_type())
+        .unwrap_or(String::from("applications-other")))
 }
 
 pub fn find_lnk_exe_location(lnk_location: &PathBuf) -> Result<FloraLink, FloraLinkError> {
@@ -45,7 +62,7 @@ pub fn find_lnk_exe_location(lnk_location: &PathBuf) -> Result<FloraLink, FloraL
                 ))
             }
         } else {
-            Ok(FloraLink::Other)
+            Ok(FloraLink::Other(lnk_location.to_owned()))
         }
     }
 }
