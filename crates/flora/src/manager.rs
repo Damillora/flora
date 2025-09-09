@@ -147,14 +147,10 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed(name)?;
+        let seed = self.read_seed(name)?;
 
-        let start_menu_location = runners::get_start_menu_entry_location(
-            &self.flora_dirs,
-            &self.config,
-            &seed_config,
-            menu_name,
-        )?;
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        let start_menu_location = runner.get_start_menu_entry_location(menu_name)?;
         let update_seed_operation = vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
             application_name: menu_name.to_string(),
             application_location: start_menu_location,
@@ -219,7 +215,7 @@ impl FloraManager {
     pub fn seed_config(
         &self,
         name: &String,
-        args: &Option<Vec<String>>,
+        args: &Option<Vec<&str>>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
@@ -227,24 +223,17 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed(name)?;
+        let seed = self.read_seed(name)?;
 
-        runners::run_seed_config(
-            name,
-            &self.flora_dirs,
-            &self.config,
-            &seed_config,
-            args,
-            quiet,
-            wait,
-        )
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        runner.run_config(args, quiet, wait)
     }
 
     /// Launches wine(proton)tricks inside an seed's prefix
     pub fn seed_tricks(
         &self,
         name: &String,
-        args: &Option<Vec<String>>,
+        args: &Option<Vec<&str>>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
@@ -252,17 +241,10 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed(name)?;
+        let seed = self.read_seed(name)?;
 
-        runners::run_seed_tricks(
-            name,
-            &self.flora_dirs,
-            &self.config,
-            &seed_config,
-            args,
-            quiet,
-            wait,
-        )
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        runner.run_tricks(args, quiet, wait)
     }
 
     /// Launches an app entry inside an seed's prefix
@@ -276,29 +258,22 @@ impl FloraManager {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound);
         }
-        let seed_config = self.read_seed(name)?;
+        let seed = self.read_seed(name)?;
 
         let app_entry = match &app_name {
-            Some(app_name) => seed_config
+            Some(app_name) => seed
                 .apps
                 .iter()
                 .find(|item| &item.application_name == app_name),
-            None => seed_config.apps.first(),
+            None => seed.apps.first(),
         };
 
         if let Some(app_entry) = app_entry {
             // Determine arguments to be passed to runner
-            let new_args = &vec![app_entry.application_location.clone()];
+            let new_args = [&*app_entry.application_location];
 
-            runners::run_seed_executable(
-                name,
-                &self.flora_dirs,
-                &self.config,
-                &seed_config,
-                new_args,
-                quiet,
-                wait,
-            )
+            let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+            runner.run_executable(&new_args, quiet, wait)
         } else {
             Err(FloraError::SeedNoApp)
         }
@@ -308,7 +283,7 @@ impl FloraManager {
     pub fn seed_run_executable(
         &self,
         name: &String,
-        args: &Vec<String>,
+        args: &Vec<&str>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
@@ -316,20 +291,13 @@ impl FloraManager {
             return Err(FloraError::SeedNotFound);
         }
 
-        let seed_config = self.read_seed(name)?;
+        let seed = self.read_seed(name)?;
 
         // Determine arguments to be passed to runner
         let new_args = args;
 
-        runners::run_seed_executable(
-            name,
-            &self.flora_dirs,
-            &self.config,
-            &seed_config,
-            new_args,
-            quiet,
-            wait,
-        )
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        runner.run_executable(new_args, quiet, wait)
     }
 
     /// Creates a desktop entry for seed
@@ -346,7 +314,8 @@ impl FloraManager {
 
             debug!("Generating menu entries for seed {}", name);
 
-            runners::create_desktop_entry(&name, &self.flora_dirs, &self.config, &seed)?;
+            let runner = runners::create_runner(&name, &self.flora_dirs, &self.config, &seed);
+            runner.create_desktop_entries()?;
         }
 
         Ok(())

@@ -9,186 +9,180 @@ use crate::{
     desktop,
     dirs::FloraDirs,
     errors::FloraError,
-    seed::{FloraProtonSeed, FloraSeed, FloraSeedType},
+    runners::FloraRunner,
+    seed::{FloraProtonSeed, FloraSeedApp},
     winepath,
 };
 
-fn find_proton_tool(dirs: &FloraDirs, name: &String) -> Result<PathBuf, FloraError> {
-    // Flora Proton path
-    let mut flora_proton_path = dirs.get_proton_root();
-    flora_proton_path.push(name);
-
-    // Local Steam Proton path
-    let mut steam_proton_path = dirs.get_proton_root_steam();
-    steam_proton_path.push(name);
-
-    // System Steam Proton Path
-    let mut steam_proton_path_system = PathBuf::from("/usr/share/steam/compatibilitytools.d");
-    steam_proton_path_system.push(name);
-
-    if fs::exists(&flora_proton_path)? {
-        Ok(flora_proton_path)
-    } else if fs::exists(&steam_proton_path)? {
-        Ok(steam_proton_path)
-    } else if fs::exists(&steam_proton_path_system)? {
-        Ok(steam_proton_path_system)
-    } else {
-        Ok(PathBuf::from(&name))
-    }
+pub struct FloraProtonRunner<'a> {
+    name: &'a str,
+    dirs: &'a FloraDirs,
+    config: &'a FloraConfig,
+    proton_seed: &'a FloraProtonSeed,
+    apps: &'a Vec<FloraSeedApp>,
 }
-fn get_proton_tool(
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    proton_seed: &FloraProtonSeed,
-) -> Result<PathBuf, FloraError> {
-    if let Some(runner) = &proton_seed.proton_runtime {
-        // Proton runtime is defined in seed.
-        // Use Proton runtime defined in seed.
-        Ok(find_proton_tool(dirs, runner)?)
-    } else if let Some(proton_config) = &config.proton {
-        // Proton runtime is not defined in seed, but defined globally.
-        // Use Proton runtime defined in global configuration.
-        Ok(find_proton_tool(
+
+impl<'a> FloraProtonRunner<'a> {
+    pub fn new(
+        name: &'a str,
+        dirs: &'a FloraDirs,
+        config: &'a FloraConfig,
+        proton_seed: &'a FloraProtonSeed,
+        apps: &'a Vec<FloraSeedApp>,
+    ) -> Self {
+        Self {
+            name,
             dirs,
-            &proton_config.default_proton_runtime,
-        )?)
-    } else {
-        // Proton runtime is not defined in seed nor global.
-        // Define an empty runtime, and let umu-launcher decide.
-        Ok(PathBuf::from(""))
+            config,
+            proton_seed,
+            apps,
+        }
     }
 }
 
-fn get_proton_prefix(
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    proton_seed: &FloraProtonSeed,
-) -> PathBuf {
-    if let Some(path) = &proton_seed.proton_prefix {
-        // Prefix is defined in seed
-        // Use prefix defined by seed.
-        PathBuf::from(path.clone())
-    } else if let Some(proton_config) = &config.proton {
-        // Prefix is not defined in seed, but there is a default prefix defined globally.
-        // Use default prefix from global configuration.
-        PathBuf::from(&proton_config.default_proton_prefix)
-    } else {
-        // Prefix is not defined in seed and default prefix is not set.
-        // Use a well-known fallback prefix directory.
-        dirs.get_fallback_prefix_proton()
+impl<'a> FloraProtonRunner<'a> {
+    fn find_proton_tool(&self, name: &String) -> Result<PathBuf, FloraError> {
+        // Flora Proton path
+        let mut flora_proton_path = self.dirs.get_proton_root();
+        flora_proton_path.push(name);
+
+        // Local Steam Proton path
+        let mut steam_proton_path = self.dirs.get_proton_root_steam();
+        steam_proton_path.push(name);
+
+        // System Steam Proton Path
+        let mut steam_proton_path_system = PathBuf::from("/usr/share/steam/compatibilitytools.d");
+        steam_proton_path_system.push(name);
+
+        if fs::exists(&flora_proton_path)? {
+            Ok(flora_proton_path)
+        } else if fs::exists(&steam_proton_path)? {
+            Ok(steam_proton_path)
+        } else if fs::exists(&steam_proton_path_system)? {
+            Ok(steam_proton_path_system)
+        } else {
+            Ok(PathBuf::from(&name))
+        }
     }
-}
-
-fn ensure_proton_tool(proton_tool: &PathBuf) -> Result<(), FloraError> {
-    debug!(
-        "Proton tool dir: {}",
-        proton_tool
-            .clone()
-            .into_os_string()
-            .into_string()
-            .map_err(|_| FloraError::InternalError)?
-    );
-
-    if !fs::exists(proton_tool)? {
-        return Err(FloraError::MissingRunner);
-    }
-
-    Ok(())
-}
-
-fn ensure_proton_prefix(proton_prefix: &PathBuf) -> Result<(), FloraError> {
-    debug!(
-        "Proton prefix: {}",
-        proton_prefix
-            .clone()
-            .into_os_string()
-            .into_string()
-            .map_err(|_| FloraError::InternalError)?
-    );
-
-    if !fs::exists(proton_prefix)? {
-        info!("Prefix not found, but will be created at launch");
+    fn get_proton_tool(&self) -> Result<PathBuf, FloraError> {
+        if let Some(runner) = &self.proton_seed.proton_runtime {
+            // Proton runtime is defined in seed.
+            // Use Proton runtime defined in seed.
+            Ok(self.find_proton_tool(runner)?)
+        } else if let Some(proton_config) = &self.config.proton {
+            // Proton runtime is not defined in seed, but defined globally.
+            // Use Proton runtime defined in global configuration.
+            Ok(self.find_proton_tool(&proton_config.default_proton_runtime)?)
+        } else {
+            // Proton runtime is not defined in seed nor global.
+            // Define an empty runtime, and let umu-launcher decide.
+            Ok(PathBuf::from(""))
+        }
     }
 
-    Ok(())
-}
+    fn get_proton_prefix(&self) -> PathBuf {
+        if let Some(path) = &self.proton_seed.proton_prefix {
+            // Prefix is defined in seed
+            // Use prefix defined by seed.
+            PathBuf::from(path.clone())
+        } else if let Some(proton_config) = &self.config.proton {
+            // Prefix is not defined in seed, but there is a default prefix defined globally.
+            // Use default prefix from global configuration.
+            PathBuf::from(&proton_config.default_proton_prefix)
+        } else {
+            // Prefix is not defined in seed and default prefix is not set.
+            // Use a well-known fallback prefix directory.
+            self.dirs.get_fallback_prefix_proton()
+        }
+    }
 
-fn get_system_start_menu_dir(
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    proton_seed: &FloraProtonSeed,
-) -> PathBuf {
-    let mut proton_prefix = get_proton_prefix(dirs, config, proton_seed);
-    proton_prefix.push("drive_c/ProgramData/Microsoft/Windows/Start Menu");
+    fn ensure_proton_tool(&self, proton_tool: &PathBuf) -> Result<(), FloraError> {
+        debug!(
+            "Proton tool dir: {}",
+            proton_tool
+                .clone()
+                .into_os_string()
+                .into_string()
+                .map_err(|_| FloraError::InternalError)?
+        );
 
-    proton_prefix
-}
-
-fn get_start_menu_dir(
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    proton_seed: &FloraProtonSeed,
-) -> PathBuf {
-    let mut proton_prefix = get_proton_prefix(dirs, config, proton_seed);
-    proton_prefix.push("drive_c/users");
-    proton_prefix.push("steamuser");
-    proton_prefix.push("AppData/Roaming/Microsoft/Windows/Start Menu");
-
-    proton_prefix
-}
-pub fn find_start_menu_entry_location(
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-    menu_name: &String,
-) -> Result<String, FloraError> {
-    if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
-        let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
-
-        for start_menu_dir in vec![
-            get_start_menu_dir(dirs, config, proton_seed),
-            get_system_start_menu_dir(dirs, config, proton_seed),
-        ] {
-            for entry in WalkDir::new(start_menu_dir)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                if let Some(file_name) = entry.path().file_name()
-                    && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
-                {
-                    debug!("Found Start Menu item: {}", entry.path().display());
-                    let path = String::from(entry.path().to_str().unwrap_or_default());
-
-                    let winepath = winepath::unix_to_windows(&proton_prefix, &PathBuf::from(path));
-
-                    debug!("Winepath: {}", winepath);
-                    return Ok(winepath);
-                }
-            }
+        if !fs::exists(proton_tool)? {
+            return Err(FloraError::MissingRunner);
         }
 
-        Err(FloraError::StartMenuNotFound)
-    } else {
-        Err(FloraError::IncorrectRunner)
+        Ok(())
+    }
+
+    fn ensure_proton_prefix(&self, proton_prefix: &PathBuf) -> Result<(), FloraError> {
+        debug!(
+            "Proton prefix: {}",
+            proton_prefix
+                .clone()
+                .into_os_string()
+                .into_string()
+                .map_err(|_| FloraError::InternalError)?
+        );
+
+        if !fs::exists(proton_prefix)? {
+            info!("Prefix not found, but will be created at launch");
+        }
+
+        Ok(())
+    }
+
+    fn get_system_start_menu_dir(&self) -> PathBuf {
+        let mut proton_prefix = self.get_proton_prefix();
+        proton_prefix.push("drive_c/ProgramData/Microsoft/Windows/Start Menu");
+
+        proton_prefix
+    }
+
+    fn get_start_menu_dir(&self) -> PathBuf {
+        let mut proton_prefix = self.get_proton_prefix();
+        proton_prefix.push("drive_c/users");
+        proton_prefix.push("steamuser");
+        proton_prefix.push("AppData/Roaming/Microsoft/Windows/Start Menu");
+
+        proton_prefix
     }
 }
+impl<'a> FloraRunner for FloraProtonRunner<'a> {
+    fn run_config(
+        &self,
+        args: &Option<Vec<&str>>,
+        quiet: bool,
+        wait: bool,
+    ) -> Result<(), FloraError> {
+        let mut winecfg_path = vec!["winecfg"];
 
-/// Run something in wine
-pub fn run_proton_executable(
-    name: &str,
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-    args: &Vec<String>,
-    quiet: bool,
-    wait: bool,
-) -> Result<(), FloraError> {
-    if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
-        let proton_tool = get_proton_tool(dirs, config, proton_seed)?;
-        let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
+        if let Some(additional_args) = args {
+            winecfg_path.extend(additional_args.iter().cloned());
+        }
 
-        ensure_proton_tool(&proton_tool)?;
-        ensure_proton_prefix(&proton_prefix)?;
+        self.run_executable(&winecfg_path, quiet, wait)
+    }
+
+    fn run_tricks(
+        &self,
+        args: &Option<Vec<&str>>,
+        quiet: bool,
+        wait: bool,
+    ) -> Result<(), FloraError> {
+        let mut winetricks_path = vec!["winetricks"];
+
+        if let Some(additional_args) = args {
+            winetricks_path.extend(additional_args.iter().cloned());
+        }
+
+        self.run_executable(&winetricks_path, quiet, wait)
+    }
+
+    fn run_executable(&self, args: &[&str], quiet: bool, wait: bool) -> Result<(), FloraError> {
+        let proton_tool = self.get_proton_tool()?;
+        let proton_prefix = self.get_proton_prefix();
+
+        self.ensure_proton_tool(&proton_tool)?;
+        self.ensure_proton_prefix(&proton_prefix)?;
 
         debug!("Using {} to launch {}", "umu-run", args.join(" "));
 
@@ -199,15 +193,15 @@ pub fn run_proton_executable(
             .env("PROTONPATH", proton_tool)
             .args(args);
 
-        if let Some(game_id) = &proton_seed.game_id {
+        if let Some(game_id) = &self.proton_seed.game_id {
             command.env("GAMEID", game_id);
         }
-        if let Some(store) = &proton_seed.store {
+        if let Some(store) = &self.proton_seed.store {
             command.env("STORE", store);
         }
         if quiet {
-            let log_out = dirs.get_log_file(name)?;
-            let log_err = dirs.get_log_file(name)?;
+            let log_out = self.dirs.get_log_file(self.name)?;
+            let log_err = self.dirs.get_log_file(self.name)?;
             command.stdin(Stdio::null()).stdout(log_out).stderr(log_err);
         }
 
@@ -217,67 +211,21 @@ pub fn run_proton_executable(
         }
 
         Ok(())
-    } else {
-        Err(FloraError::IncorrectRunner)
-    }
-}
-
-/// Run tricks
-pub fn run_proton_tricks(
-    name: &str,
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-    args: &Option<Vec<String>>,
-    quiet: bool,
-    wait: bool,
-) -> Result<(), FloraError> {
-    let mut winetricks_path = vec![String::from("winetricks")];
-
-    if let Some(additional_args) = args {
-        winetricks_path.extend(additional_args.iter().cloned());
     }
 
-    run_proton_executable(name, dirs, config, seed, &winetricks_path, quiet, wait)
-}
-
-pub fn run_proton_config(
-    name: &str,
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-    args: &Option<Vec<String>>,
-    quiet: bool,
-    wait: bool,
-) -> Result<(), FloraError> {
-    let mut winecfg_path = vec![String::from("winecfg")];
-
-    if let Some(additional_args) = args {
-        winecfg_path.extend(additional_args.iter().cloned());
-    }
-
-    run_proton_executable(name, dirs, config, seed, &winecfg_path, quiet, wait)
-}
-
-pub fn create_desktop_entry(
-    name: &String,
-    dirs: &FloraDirs,
-    config: &FloraConfig,
-    seed: &FloraSeed,
-) -> Result<(), FloraError> {
-    if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
-        let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
+    fn create_desktop_entries(&self) -> Result<(), FloraError> {
+        let proton_prefix = self.get_proton_prefix();
         // Initialize menus
-        desktop::initialize_desktop_entries(dirs)?;
+        desktop::initialize_desktop_entries(self.dirs)?;
 
-        for app in seed.apps.iter() {
+        for app in self.apps.iter() {
             // Get link path
             let target_linux_path =
                 winepath::windows_to_unix(&proton_prefix, &app.application_location);
 
             let exe_find = flora_icon::find_lnk_exe_location(&target_linux_path)?;
 
-            let icon_path = dirs.get_icon_file(name, &app.application_name);
+            let icon_path = self.dirs.get_icon_file(self.name, &app.application_name);
             let mut icon_name = String::from("applications-other");
 
             if let FloraLink::WindowsIco(ico_path) = exe_find {
@@ -317,26 +265,28 @@ pub fn create_desktop_entry(
             // Create desktop entry files
             let desktop_entry = format!(
                 r#"[Desktop Entry]
-Type=Application
-Categories=X-Flora
-Name={}
-Icon={}
-Exec=flora run -a -w {} "{}"
-Comment=Run {} with Flora (Proton seed {})
-Terminal=false"#,
+                Type=Application
+                Categories=X-Flora
+                Name={}
+                Icon={}
+                Exec=flora run -a -w {} "{}"
+                Comment=Run {} with Flora (Proton seed {})
+            Terminal=false"#,
                 app.application_name,
                 icon_name,
-                name,
+                self.name,
                 app.application_name,
                 app.application_name,
-                name
+                self.name
             );
 
-            let desktop_entry_location = dirs.get_desktop_entry_file(name, &app.application_name);
+            let desktop_entry_location = self
+                .dirs
+                .get_desktop_entry_file(self.name, &app.application_name);
 
             debug!(
                 "Writing {} desktop entry to {}",
-                name,
+                self.name,
                 desktop_entry_location
                     .clone()
                     .into_os_string()
@@ -348,7 +298,30 @@ Terminal=false"#,
         }
 
         Ok(())
-    } else {
-        Err(FloraError::IncorrectRunner)
+    }
+
+    fn get_start_menu_entry_location(&self, menu_name: &str) -> Result<String, FloraError> {
+        let proton_prefix = self.get_proton_prefix();
+
+        for start_menu_dir in [self.get_start_menu_dir(), self.get_system_start_menu_dir()] {
+            for entry in WalkDir::new(start_menu_dir)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                if let Some(file_name) = entry.path().file_name()
+                    && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
+                {
+                    debug!("Found Start Menu item: {}", entry.path().display());
+                    let path = String::from(entry.path().to_str().unwrap_or_default());
+
+                    let winepath = winepath::unix_to_windows(&proton_prefix, &PathBuf::from(path));
+
+                    debug!("Winepath: {}", winepath);
+                    return Ok(winepath);
+                }
+            }
+        }
+
+        Err(FloraError::StartMenuNotFound)
     }
 }

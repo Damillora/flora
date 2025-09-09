@@ -84,7 +84,7 @@ impl FloraDirs {
 
         Ok(log_file)
     }
-    pub fn get_desktop_entry_file(&self, name: &String, application_name: &String) -> PathBuf {
+    pub fn get_desktop_entry_file(&self, name: &str, application_name: &str) -> PathBuf {
         let mut desktop_entry_location = self.applications_entry_dir.clone();
         desktop_entry_location.push(format!("{}_{}.desktop", name, application_name));
 
@@ -104,7 +104,7 @@ impl FloraDirs {
         desktop_entry_location
     }
 
-    pub fn get_icon_file(&self, name: &String, app_name: &String) -> PathBuf {
+    pub fn get_icon_file(&self, name: &str, app_name: &str) -> PathBuf {
         let mut icon_path = self.get_icons_root();
         icon_path.push(format!("{}_{}.png", name, app_name));
 

@@ -525,11 +525,19 @@ fn main() -> Result<(), FloraError> {
                 &app_start_menu_opts.application_name,
             ),
         },
-        Commands::Config(args) => {
-            manager.seed_config(&args.name, &args.args, args.quiet, args.wait)
+        Commands::Config(opts) => {
+            let args = opts
+                .args
+                .as_ref()
+                .map(|m| m.iter().map(|s| s.as_str()).collect());
+            manager.seed_config(&opts.name, &args, opts.quiet, opts.wait)
         }
-        Commands::Tricks(args) => {
-            manager.seed_tricks(&args.name, &args.args, args.quiet, args.wait)
+        Commands::Tricks(opts) => {
+            let args = opts
+                .args
+                .as_ref()
+                .map(|m| m.iter().map(|s| s.as_str()).collect());
+            manager.seed_tricks(&opts.name, &args, opts.quiet, opts.wait)
         }
         Commands::Run(opts) => {
             match &opts.args {
@@ -539,8 +547,9 @@ fn main() -> Result<(), FloraError> {
                         let joined_args = args.join(" ").to_string();
                         manager.seed_run_app(&opts.name, &Some(joined_args), opts.quiet, opts.wait)
                     } else {
+                        let args = args.iter().map(|s| s.as_str()).collect();
                         // Launch executable
-                        manager.seed_run_executable(&opts.name, args, opts.quiet, opts.wait)
+                        manager.seed_run_executable(&opts.name, &args, opts.quiet, opts.wait)
                     }
                 }
                 // Launch the default app entry if none is specified
