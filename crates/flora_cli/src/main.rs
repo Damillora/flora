@@ -7,7 +7,7 @@ use flora::{
         FloraDeleteSeedApp, FloraRenameSeedApp, FloraSeedAppOperations, FloraUpdateProtonSeed,
         FloraUpdateSeed, FloraUpdateSeedApp, FloraUpdateWineSeed,
     },
-    responses::{FloraSeedAppItem, FloraSeedItem},
+    responses::{FloraSeedAppItem, FloraSeedItem, FloraSeedStartMenuItem},
 };
 use tabled::{
     Table, Tabled,
@@ -32,6 +32,8 @@ pub enum Commands {
     Seed(SeedOpts),
     /// Manage apps in a seed
     App(AppOpts),
+    /// Query Start Menu entries in a seed and create app entries based on them
+    StartMenu(StartMenuOpts),
     /// Launches the seed's prefix configuration, usually winecfg.
     Config(RunOpts),
     /// Launches winetricks for the seed's prefix
@@ -214,8 +216,6 @@ pub enum AppCommands {
     Rename(AppRenameOpts),
     /// Removes an app from a seed
     Delete(AppDeleteOpts),
-    /// Generates an app entry from a Start Menu shortcut
-    StartMenu(AppStartMenuOpts),
 }
 #[derive(Args)]
 pub struct AppSeedOpts {
@@ -275,9 +275,31 @@ pub struct AppDeleteOpts {
     application_name: String,
 }
 #[derive(Args)]
-pub struct AppStartMenuOpts {
-    #[clap(flatten)]
-    seed: AppSeedOpts,
+pub struct StartMenuOpts {
+    #[clap(subcommand)]
+    commands: StartMenuCommands,
+}
+
+#[derive(Subcommand)]
+pub enum StartMenuCommands {
+    /// List all Start Menu entries in a seed
+    List(StartMenuListOpts),
+    /// Generates an app based on a Start Menu entry
+    CreateApp(StartMenuGenerateAppOpts),
+}
+#[derive(Args)]
+pub struct StartMenuListOpts {
+    /// Name of seed
+    name: String,
+
+    /// Long format
+    #[arg(short = 'l', long)]
+    long: bool,
+}
+#[derive(Args)]
+pub struct StartMenuGenerateAppOpts {
+    /// Name of seed
+    name: String,
 
     /// Name of the Start Menu entry
     application_name: String,
@@ -318,6 +340,13 @@ pub struct SeedAppTableRow<'a> {
     pub application_location: &'a str,
 }
 
+#[derive(Tabled)]
+#[tabled(rename_all = "Upper Title Case")]
+pub struct SeedStartMenuTableRow<'a> {
+    pub name: &'a str,
+    pub location: &'a str,
+}
+
 impl<'a> From<&'a FloraSeedItem> for SeedTableRow<'a> {
     fn from(item: &'a FloraSeedItem) -> Self {
         match &item.seed_type {
@@ -343,6 +372,14 @@ impl<'a> From<&'a FloraSeedAppItem> for SeedAppTableRow<'a> {
         Self {
             application_name: item.application_name.as_str(),
             application_location: item.application_location.as_str(),
+        }
+    }
+}
+impl<'a> From<&'a FloraSeedStartMenuItem> for SeedStartMenuTableRow<'a> {
+    fn from(item: &'a FloraSeedStartMenuItem) -> Self {
+        Self {
+            name: item.start_menu_name.as_str(),
+            location: item.start_menu_location.as_str(),
         }
     }
 }
@@ -520,10 +557,33 @@ fn main() -> Result<(), FloraError> {
                     application_name: app_delete_opts.application_name.as_str(),
                 })],
             ),
-            AppCommands::StartMenu(app_start_menu_opts) => manager.create_start_menu_app(
-                &app_start_menu_opts.seed.name,
-                &app_start_menu_opts.application_name,
-            ),
+        },
+        Commands::StartMenu(opts) => match &opts.commands {
+            StartMenuCommands::List(start_menu_list_opts) => {
+                let start_menu_entries =
+                    manager.list_start_menu_entries(&start_menu_list_opts.name)?;
+                if start_menu_list_opts.long {
+                    let table_items = start_menu_entries.iter().map(SeedStartMenuTableRow::from);
+
+                    let mut table = Table::new(table_items);
+                    table.with(Style::blank());
+                    table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
+                    table.modify(Columns::first(), Alignment::left());
+
+                    println!("{}", table);
+                } else {
+                    for entry in start_menu_entries {
+                        println!("{}", entry.start_menu_name,)
+                    }
+                }
+
+                Ok(())
+            }
+            StartMenuCommands::CreateApp(start_menu_create_app_opts) => manager
+                .create_start_menu_app(
+                    &start_menu_create_app_opts.name,
+                    &start_menu_create_app_opts.application_name,
+                ),
         },
         Commands::Config(opts) => {
             let args = opts

@@ -11,7 +11,7 @@ use crate::{
     dirs::FloraDirs,
     errors::FloraError,
     requests::{FloraCreateSeed, FloraCreateSeedApp, FloraSeedAppOperations, FloraUpdateSeed},
-    responses::FloraSeedItem,
+    responses::{FloraSeedItem, FloraSeedStartMenuItem},
     runners,
     seed::FloraSeed,
 };
@@ -133,6 +133,21 @@ impl FloraManager {
 
         Ok(())
     }
+
+    pub fn list_start_menu_entries(
+        &self,
+        name: &str,
+    ) -> Result<Vec<FloraSeedStartMenuItem>, FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
+        }
+
+        let seed = self.read_seed(name)?;
+
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        runner.list_start_menu_entries()
+    }
+
     /// Creates an app for seed from Start Menu item
     pub fn create_start_menu_app(&self, name: &str, menu_name: &str) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {

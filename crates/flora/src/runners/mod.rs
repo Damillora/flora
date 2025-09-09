@@ -2,6 +2,7 @@ use crate::{
     config::FloraConfig,
     dirs::FloraDirs,
     errors::FloraError,
+    responses::FloraSeedStartMenuItem,
     runners::{proton::FloraProtonRunner, wine::FloraWineRunner},
     seed::{FloraSeed, FloraSeedType},
 };
@@ -27,6 +28,7 @@ pub trait FloraRunner {
     fn run_executable(&self, args: &[&str], quiet: bool, wait: bool) -> Result<(), FloraError>;
     fn create_desktop_entries(&self) -> Result<(), FloraError>;
     fn get_start_menu_entry_location(&self, menu_name: &str) -> Result<String, FloraError>;
+    fn list_start_menu_entries(&self) -> Result<Vec<FloraSeedStartMenuItem>, FloraError>;
 }
 
 pub fn create_runner<'a>(

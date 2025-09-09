@@ -14,7 +14,9 @@
     * `app update`: Updates an app in a seed
     * `app rename`: Renames an app in a seed
     * `app delete`: Removes an app from a seed
-    * `app start-menu`: Generates an app entry from a Start Menu shortcut
+* `start-menu`: Query Start Menu entries in a seed and create app entries based on them
+    * `start-menu list`: List all Start Menu entries in a seed
+    * `start-menu create-app`: Generates an app based on a Start Menu entry
 * `config`: Launches the seed's prefix configuration, usually `winecfg`.
 * `tricks`: Launches winetricks for the seed's prefix 
 * `run`: Runs an application in a seed

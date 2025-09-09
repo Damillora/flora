@@ -9,6 +9,7 @@ use crate::{
     desktop,
     dirs::FloraDirs,
     errors::FloraError,
+    responses::FloraSeedStartMenuItem,
     runners::FloraRunner,
     seed::{FloraSeedApp, FloraWineSeed},
     winepath,
@@ -261,7 +262,9 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             let icon_path = self.dirs.get_icon_file(self.name, &app.application_name);
             let mut icon_name = String::from("applications-other");
 
-            if let FloraLink::WindowsIco(ico_path) = exe_find {
+            if let FloraLink::Other = exe_find {
+                // Not an EXE or LNK, use other icon
+            } else if let FloraLink::WindowsIco(ico_path) = exe_find {
                 let windows_ico_path = winepath::windows_to_unix(&wine_prefix, &ico_path);
                 debug!(
                     "We got icon from {}",
@@ -355,5 +358,34 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
         }
 
         Err(FloraError::StartMenuNotFound)
+    }
+
+    fn list_start_menu_entries(&self) -> Result<Vec<FloraSeedStartMenuItem>, FloraError> {
+        let wine_prefix = self.get_wine_prefix();
+        let mut start_menu_entries = Vec::new();
+
+        for start_menu_dir in [self.get_start_menu_dir(), self.get_system_start_menu_dir()] {
+            for entry in WalkDir::new(start_menu_dir)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
+                if let Some(extension) = entry.path().extension()
+                    && extension == "lnk"
+                    && let Some(file_stem) = entry.path().file_stem()
+                {
+                    debug!("Found Start Menu item: {}", entry.path().display());
+
+                    start_menu_entries.push(FloraSeedStartMenuItem {
+                        start_menu_name: String::from(file_stem.to_str().unwrap()),
+                        start_menu_location: String::from(winepath::unix_to_windows(
+                            &wine_prefix,
+                            entry.path(),
+                        )),
+                    });
+                }
+            }
+        }
+
+        Ok(start_menu_entries)
     }
 }

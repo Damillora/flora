@@ -28,6 +28,11 @@ pub struct FloraSeedAppItem {
     pub application_location: String,
 }
 
+pub struct FloraSeedStartMenuItem {
+    pub start_menu_name: String,
+    pub start_menu_location: String,
+}
+
 impl FloraSeedItem {
     pub(crate) fn from_config(name: &str, config: &FloraSeed) -> FloraSeedItem {
         FloraSeedItem {

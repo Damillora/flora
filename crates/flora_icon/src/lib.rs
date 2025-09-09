@@ -9,6 +9,7 @@ pub enum FloraLink {
     LinuxExe(PathBuf),
     WindowsIco(String),
     WindowsExe(String),
+    Other,
 }
 
 pub fn find_lnk_exe_location(lnk_location: &PathBuf) -> Result<FloraLink, FloraLinkError> {
@@ -26,23 +27,25 @@ pub fn find_lnk_exe_location(lnk_location: &PathBuf) -> Result<FloraLink, FloraL
     if is_exe {
         Ok(FloraLink::LinuxExe(lnk_location.to_owned()))
     } else {
-        let shortcut = lnk::ShellLink::open(lnk_location, WINDOWS_1252)
-            .map_err(|_| FloraLinkError::InvalidFormat)?;
-        if let Some(icon_location) = shortcut.string_data().icon_location() {
-            Ok(FloraLink::WindowsIco(
-                icon_location
-                    .to_owned()
-                    .trim_matches(char::from(0)) // Clean up null values
-                    .to_string(),
-            ))
+        if let Ok(shortcut) = lnk::ShellLink::open(lnk_location, WINDOWS_1252) {
+            if let Some(icon_location) = shortcut.string_data().icon_location() {
+                Ok(FloraLink::WindowsIco(
+                    icon_location
+                        .to_owned()
+                        .trim_matches(char::from(0)) // Clean up null values
+                        .to_string(),
+                ))
+            } else {
+                Ok(FloraLink::WindowsExe(
+                    shortcut
+                        .link_target()
+                        .unwrap_or_default()
+                        .trim_matches(char::from(0)) // Clean up null values
+                        .to_string(),
+                ))
+            }
         } else {
-            Ok(FloraLink::WindowsExe(
-                shortcut
-                    .link_target()
-                    .unwrap_or_default()
-                    .trim_matches(char::from(0)) // Clean up null values
-                    .to_string(),
-            ))
+            Ok(FloraLink::Other)
         }
     }
 }
