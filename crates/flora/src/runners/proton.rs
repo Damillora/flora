@@ -113,6 +113,17 @@ fn ensure_proton_prefix(proton_prefix: &PathBuf) -> Result<(), FloraError> {
     Ok(())
 }
 
+fn get_system_start_menu_dir(
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    proton_seed: &FloraProtonSeed,
+) -> PathBuf {
+    let mut proton_prefix = get_proton_prefix(dirs, config, proton_seed);
+    proton_prefix.push("drive_c/ProgramData/Microsoft/Windows/Start Menu");
+
+    proton_prefix
+}
+
 fn get_start_menu_dir(
     dirs: &FloraDirs,
     config: &FloraConfig,
@@ -134,22 +145,25 @@ pub fn find_start_menu_entry_location(
     if let FloraSeedType::Proton(proton_seed) = &seed.seed_type {
         let proton_prefix = get_proton_prefix(dirs, config, proton_seed);
 
-        let start_menu_dir = get_start_menu_dir(dirs, config, proton_seed);
-
-        for entry in WalkDir::new(start_menu_dir)
-            .into_iter()
-            .filter_map(|e| e.ok())
-        {
-            if let Some(file_name) = entry.path().file_name()
-                && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
+        for start_menu_dir in vec![
+            get_start_menu_dir(dirs, config, proton_seed),
+            get_system_start_menu_dir(dirs, config, proton_seed),
+        ] {
+            for entry in WalkDir::new(start_menu_dir)
+                .into_iter()
+                .filter_map(|e| e.ok())
             {
-                debug!("Found Start Menu item: {}", entry.path().display());
-                let path = String::from(entry.path().to_str().unwrap_or_default());
+                if let Some(file_name) = entry.path().file_name()
+                    && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
+                {
+                    debug!("Found Start Menu item: {}", entry.path().display());
+                    let path = String::from(entry.path().to_str().unwrap_or_default());
 
-                let winepath = winepath::unix_to_windows(&proton_prefix, &PathBuf::from(path));
+                    let winepath = winepath::unix_to_windows(&proton_prefix, &PathBuf::from(path));
 
-                debug!("Winepath: {}", winepath);
-                return Ok(winepath);
+                    debug!("Winepath: {}", winepath);
+                    return Ok(winepath);
+                }
             }
         }
 

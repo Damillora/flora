@@ -102,6 +102,17 @@ fn get_start_menu_dir(
     wine_prefix
 }
 
+fn get_system_start_menu_dir(
+    dirs: &FloraDirs,
+    config: &FloraConfig,
+    wine_seed: &FloraWineSeed,
+) -> PathBuf {
+    let mut wine_prefix = get_wine_prefix(dirs, config, wine_seed);
+    wine_prefix.push("drive_c/ProgramData/Microsoft/Windows/Start Menu");
+
+    wine_prefix
+}
+
 pub fn find_start_menu_entry_location(
     dirs: &FloraDirs,
     config: &FloraConfig,
@@ -111,22 +122,25 @@ pub fn find_start_menu_entry_location(
     if let FloraSeedType::Wine(wine_seed) = &seed.seed_type {
         let wine_prefix = get_wine_prefix(dirs, config, wine_seed);
 
-        let start_menu_dir = get_start_menu_dir(dirs, config, wine_seed);
-
-        for entry in WalkDir::new(start_menu_dir)
-            .into_iter()
-            .filter_map(|e| e.ok())
-        {
-            if let Some(file_name) = entry.path().file_name()
-                && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
+        for start_menu_dir in vec![
+            get_start_menu_dir(dirs, config, wine_seed),
+            get_system_start_menu_dir(dirs, config, wine_seed),
+        ] {
+            for entry in WalkDir::new(start_menu_dir)
+                .into_iter()
+                .filter_map(|e| e.ok())
             {
-                debug!("Found Start Menu item: {}", entry.path().display());
-                let path = String::from(entry.path().to_str().unwrap_or_default());
+                if let Some(file_name) = entry.path().file_name()
+                    && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
+                {
+                    debug!("Found Start Menu item: {}", entry.path().display());
+                    let path = String::from(entry.path().to_str().unwrap_or_default());
 
-                let winepath = winepath::unix_to_windows(&wine_prefix, &PathBuf::from(path));
+                    let winepath = winepath::unix_to_windows(&wine_prefix, &PathBuf::from(path));
 
-                debug!("Winepath: {}", winepath);
-                return Ok(winepath);
+                    debug!("Winepath: {}", winepath);
+                    return Ok(winepath);
+                }
             }
         }
 
