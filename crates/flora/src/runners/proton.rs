@@ -268,14 +268,14 @@ impl<'a> FloraRunner for FloraProtonRunner<'a> {
 
             // Create desktop entry files
             let desktop_entry = format!(
-                r#"[Desktop Entry]
-                Type=Application
-                Categories=X-Flora
-                Name={}
-                Icon={}
-                Exec=flora run -a -w {} "{}"
-                Comment=Run {} with Flora (Proton seed {})
-            Terminal=false"#,
+                "[Desktop Entry]
+Type=Application
+Categories=X-Flora
+Name={}
+Icon={}
+Exec=flora run -a -w {} \"{}\"
+Comment=Run {} with Flora (Proton seed {})
+Terminal=false",
                 app.application_name,
                 icon_name,
                 self.name,

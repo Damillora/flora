@@ -301,14 +301,14 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
 
             // Create desktop entry files
             let desktop_entry = format!(
-                r#"[Desktop Entry]
-                Type=Application
-                Categories=X-Flora
-                Name={}
-                Icon={}
-                Exec=flora run -a -w {} "{}"
-                Comment=Run {} with Flora (Wine seed {})
-            Terminal=false"#,
+                "[Desktop Entry]
+Type=Application
+Categories=X-Flora
+Name={}
+Icon={}
+Exec=flora run -a -w {} \"{}\"
+Comment=Run {} with Flora (Wine seed {})
+Terminal=false",
                 app.application_name,
                 icon_name,
                 self.name,
