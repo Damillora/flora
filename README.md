@@ -53,24 +53,24 @@ Runtimes in those folder can be managed with tools like [ProtonUp-Qt](https://gi
 
 ### `flora` commands
 * `seed`: Manage seeds
-    * `seed list`: Lists all seeds
-    * `seed create`: Creates a seed
-    * `seed set`: Sets a seed's properties
-    * `seed delete`: Removes a seed
+    * `seed list`: List all seeds
+    * `seed create`: Create a seed
+    * `seed set`: Set a seed's properties
+    * `seed delete`: Remove a seed
     * `seed info`: Show a seed's information
 * `app`: Manage apps in a seed
-    * `app list`: Lists all apps in a seed
-    * `app add`: Adds an app into a seed
-    * `app update`: Updates an app in a seed
-    * `app rename`: Renames an app in a seed
-    * `app delete`: Removes an app from a seed
+    * `app list`: List all apps in a seed
+    * `app add`: Add an app into a seed
+    * `app update`: Update an app in a seed
+    * `app rename`: Rename an app in a seed
+    * `app delete`: Remove an app from a seed
 * `start-menu`: Query Start Menu entries in a seed and create app entries based on them
     * `start-menu list`: List all Start Menu entries in a seed
-    * `start-menu create-app`: Generates an app based on a Start Menu entry
-* `config`: Launches the seed's prefix configuration, usually `winecfg`.
-* `tricks`: Launches winetricks for the seed's prefix 
-* `run`: Runs an application in a seed
-* `generate-menu`: Generates menu entries for each app entries in a seed for launching from the application menu
+    * `start-menu create-app`: Generate an app based on a Start Menu entry
+* `config`: Launch the seed's prefix configuration, usually `winecfg`
+* `tricks`: Launch winetricks for the seed's prefix 
+* `run`: Run an application in a seed
+* `generate-menu`: Generate menu entries for launching apps from the application menu
 
 
 ## Configuration

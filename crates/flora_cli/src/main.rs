@@ -34,13 +34,13 @@ pub enum Commands {
     App(AppOpts),
     /// Query Start Menu entries in a seed and create app entries based on them
     StartMenu(StartMenuOpts),
-    /// Launches the seed's prefix configuration, usually winecfg.
+    /// Launch the seed's prefix configuration, usually winecfg.
     Config(RunOpts),
-    /// Launches winetricks for the seed's prefix
+    /// Launch winetricks for the seed's prefix
     Tricks(RunOpts),
-    /// Runs an application in a seed
+    /// Run an application in a seed
     Run(RunOpts),
-    /// Generates menu entries for each app entries in a seed for launching from the application menu
+    /// Generate menu entries for launching apps from the application menu
     GenerateMenu,
 }
 
@@ -52,15 +52,15 @@ pub struct SeedOpts {
 
 #[derive(Subcommand)]
 pub enum SeedCommands {
-    /// Lists all seeds
+    /// List all seeds
     List(ListOpts),
-    /// Creates a seed
+    /// Create a seed
     Create(CreateOpts),
     /// Set a seed's properties
     Set(SetOpts),
-    /// Removes a seed
+    /// Remove a seed
     Delete(DeleteOpts),
-    /// Shows a seed's information
+    /// Show a seed's information
     Info(InfoOpts),
 }
 
@@ -208,13 +208,13 @@ pub struct AppOpts {
 pub enum AppCommands {
     /// List all apps in a seed
     List(AppListOpts),
-    /// Adds an app to a seed
+    /// Add an app to a seed
     Add(AppAddOpts),
-    /// Updates an app in a seed
+    /// Update an app in a seed
     Update(AppUpdateOpts),
-    /// Renames an app in a seed
+    /// Rename an app in a seed
     Rename(AppRenameOpts),
-    /// Removes an app from a seed
+    /// Remove an app from a seed
     Delete(AppDeleteOpts),
 }
 #[derive(Args)]
