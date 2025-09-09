@@ -307,7 +307,7 @@ Type=Application
 Categories=X-Flora
 Name={}
 Icon={}
-Exec=flora run -a -w {} \"{}\"
+Exec=flora run -a -w {} "{}"
 Comment=Run {} with Flora (Proton seed {})
 Terminal=false"#,
                 app.application_name,
