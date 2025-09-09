@@ -16,7 +16,7 @@ A seed for your Wine prefixes. Quickly launch your favorite Windows apps and gam
 flora depends on `wine` and `winetricks`. Proton support additionally depends on `umu-launcher`.
 ### From releases
 
-Grab the latest binary from the [Releases](https://github.com/Damillora/flora) page.
+Grab the latest binary from the [Releases](https://github.com/Damillora/flora/releases) page.
 
 ### Run from source
 
