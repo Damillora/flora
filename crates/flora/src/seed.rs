@@ -44,11 +44,11 @@ pub(crate) struct FloraSeedApp {
     pub application_name: String,
     pub application_location: String,
 }
-impl From<&FloraCreateSeedApp> for FloraSeedApp {
+impl<'a> From<&FloraCreateSeedApp<'a>> for FloraSeedApp {
     fn from(value: &FloraCreateSeedApp) -> Self {
         Self {
-            application_name: value.application_name.clone(),
-            application_location: value.application_location.clone(),
+            application_name: String::from(value.application_name),
+            application_location: String::from(value.application_location),
         }
     }
 }
@@ -61,11 +61,11 @@ impl FloraSeed {
                 FloraUpdateSeed::WineOptions(flora_update_wine_seed),
                 FloraSeedType::Wine(flora_wine_seed),
             ) => {
-                if let Some(wine_prefix) = flora_update_wine_seed.wine_prefix.clone() {
-                    flora_wine_seed.wine_prefix = Some(wine_prefix);
+                if let Some(wine_prefix) = flora_update_wine_seed.wine_prefix {
+                    flora_wine_seed.wine_prefix = Some(String::from(wine_prefix));
                 }
-                if let Some(wine_runtime) = flora_update_wine_seed.wine_runtime.clone() {
-                    flora_wine_seed.wine_runtime = Some(wine_runtime);
+                if let Some(wine_runtime) = flora_update_wine_seed.wine_runtime {
+                    flora_wine_seed.wine_runtime = Some(String::from(wine_runtime));
                 }
 
                 Ok(())
@@ -74,17 +74,17 @@ impl FloraSeed {
                 FloraUpdateSeed::ProtonOptions(flora_update_proton_seed),
                 FloraSeedType::Proton(flora_proton_seed),
             ) => {
-                if let Some(proton_prefix) = flora_update_proton_seed.proton_prefix.clone() {
-                    flora_proton_seed.proton_prefix = Some(proton_prefix);
+                if let Some(proton_prefix) = flora_update_proton_seed.proton_prefix {
+                    flora_proton_seed.proton_prefix = Some(String::from(proton_prefix));
                 }
-                if let Some(proton_runtime) = flora_update_proton_seed.proton_runtime.clone() {
-                    flora_proton_seed.proton_runtime = Some(proton_runtime);
+                if let Some(proton_runtime) = flora_update_proton_seed.proton_runtime {
+                    flora_proton_seed.proton_runtime = Some(String::from(proton_runtime));
                 }
-                if let Some(game_id) = flora_update_proton_seed.game_id.clone() {
-                    flora_proton_seed.game_id = Some(game_id);
+                if let Some(game_id) = flora_update_proton_seed.game_id {
+                    flora_proton_seed.game_id = Some(String::from(game_id));
                 }
-                if let Some(store) = flora_update_proton_seed.store.clone() {
-                    flora_proton_seed.store = Some(store);
+                if let Some(store) = flora_update_proton_seed.store {
+                    flora_proton_seed.store = Some(String::from(store));
                 }
 
                 Ok(())
@@ -118,8 +118,8 @@ impl FloraSeed {
                     {
                         let app = self.apps.get_mut(idx).unwrap();
 
-                        if let Some(app_location) = &flora_update_seed_app.application_location {
-                            app.application_location = app_location.clone();
+                        if let Some(app_location) = flora_update_seed_app.application_location {
+                            app.application_location = String::from(app_location);
                         }
                     } else {
                         return Err(FloraError::SeedNoApp);
@@ -131,7 +131,8 @@ impl FloraSeed {
                     }) {
                         let app = self.apps.get_mut(idx).unwrap();
 
-                        app.application_name = flora_rename_seed_app.new_application_name.clone();
+                        app.application_name =
+                            String::from(flora_rename_seed_app.new_application_name);
                     } else {
                         return Err(FloraError::SeedNoApp);
                     }
@@ -200,12 +201,12 @@ impl FloraSeed {
                                             )
                                         } else {
                                             // Prefix is absolute
-                                            Some(prefix)
+                                            Some(String::from(prefix))
                                         }
                                     }
                                 }
                             },
-                            wine_runtime: opts.wine_runner.to_owned(),
+                            wine_runtime: opts.wine_runner.map(String::from),
                         }),
                     })
                 } else {
@@ -248,13 +249,13 @@ impl FloraSeed {
                                         )
                                     } else {
                                         // Prefix is absolute
-                                        Some(prefix)
+                                        Some(String::from(prefix))
                                     }
                                 }
                             },
-                            proton_runtime: opts.proton_runtime.to_owned(),
-                            game_id: opts.game_id.to_owned(),
-                            store: opts.store.to_owned(),
+                            proton_runtime: opts.proton_runtime.map(String::from),
+                            game_id: opts.game_id.map(String::from),
+                            store: opts.store.map(String::from),
                         }),
                     })
                 } else {

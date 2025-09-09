@@ -303,46 +303,46 @@ pub struct RunOpts {
 
 #[derive(Tabled)]
 #[tabled(rename_all = "Upper Title Case")]
-pub struct SeedTableRow {
-    pub name: String,
-    pub prefix: String,
-    pub runtime: String,
-    pub game_id: String,
-    pub store: String,
+pub struct SeedTableRow<'a> {
+    pub name: &'a str,
+    pub prefix: &'a str,
+    pub runtime: &'a str,
+    pub game_id: &'a str,
+    pub store: &'a str,
 }
 
 #[derive(Tabled)]
 #[tabled(rename_all = "Upper Title Case")]
-pub struct SeedAppTableRow {
-    pub application_name: String,
-    pub application_location: String,
+pub struct SeedAppTableRow<'a> {
+    pub application_name: &'a str,
+    pub application_location: &'a str,
 }
 
-impl From<&FloraSeedItem> for SeedTableRow {
-    fn from(item: &FloraSeedItem) -> Self {
+impl<'a> From<&'a FloraSeedItem> for SeedTableRow<'a> {
+    fn from(item: &'a FloraSeedItem) -> Self {
         match &item.seed_type {
-            flora::responses::FloraSeedTypeItem::Wine(conf) => SeedTableRow {
-                name: item.name.clone(),
-                prefix: conf.wine_prefix.clone().unwrap_or_default(),
-                runtime: conf.wine_runtime.clone().unwrap_or_default(),
-                game_id: String::new(),
-                store: String::new(),
+            flora::responses::FloraSeedTypeItem::Wine(conf) => Self {
+                name: item.name.as_str(),
+                prefix: conf.wine_prefix.as_deref().unwrap_or_default(),
+                runtime: conf.wine_runtime.as_deref().unwrap_or_default(),
+                game_id: "",
+                store: "",
             },
-            flora::responses::FloraSeedTypeItem::Proton(conf) => SeedTableRow {
-                name: item.name.clone(),
-                prefix: conf.proton_prefix.clone().unwrap_or_default(),
-                runtime: conf.proton_runtime.clone().unwrap_or_default(),
-                game_id: conf.game_id.clone().unwrap_or_default(),
-                store: conf.store.clone().unwrap_or_default(),
+            flora::responses::FloraSeedTypeItem::Proton(conf) => Self {
+                name: item.name.as_str(),
+                prefix: conf.proton_prefix.as_deref().unwrap_or_default(),
+                runtime: conf.proton_runtime.as_deref().unwrap_or_default(),
+                game_id: conf.game_id.as_deref().unwrap_or_default(),
+                store: conf.store.as_deref().unwrap_or_default(),
             },
         }
     }
 }
-impl From<&FloraSeedAppItem> for SeedAppTableRow {
-    fn from(item: &FloraSeedAppItem) -> Self {
-        SeedAppTableRow {
-            application_name: item.application_name.clone(),
-            application_location: item.application_location.clone(),
+impl<'a> From<&'a FloraSeedAppItem> for SeedAppTableRow<'a> {
+    fn from(item: &'a FloraSeedAppItem) -> Self {
+        Self {
+            application_name: item.application_name.as_str(),
+            application_location: item.application_location.as_str(),
         }
     }
 }
@@ -353,12 +353,12 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
             .default_opts
             .as_ref()
             .map(|default_opt| FloraCreateSeedApp {
-                application_name: default_opt.default_application_name.clone(),
-                application_location: default_opt.default_application_location.clone(),
+                application_name: default_opt.default_application_name.as_str(),
+                application_location: default_opt.default_application_location.as_str(),
             }),
 
-        wine_prefix: args.wine_prefix.clone(),
-        wine_runner: args.wine_runtime.clone(),
+        wine_prefix: args.wine_prefix.as_deref(),
+        wine_runner: args.wine_runtime.as_deref(),
     });
 
     manager.create_seed(&args.seed.name, &seed)
@@ -370,14 +370,14 @@ fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result
             .default_opts
             .as_ref()
             .map(|default_opt| FloraCreateSeedApp {
-                application_name: default_opt.default_application_name.clone(),
-                application_location: default_opt.default_application_location.clone(),
+                application_name: default_opt.default_application_name.as_str(),
+                application_location: default_opt.default_application_location.as_str(),
             }),
 
-        proton_prefix: args.proton_prefix.clone(),
-        proton_runtime: args.proton_runtime.clone(),
-        game_id: args.game_id.clone(),
-        store: args.store.clone(),
+        proton_prefix: args.proton_prefix.as_deref(),
+        proton_runtime: args.proton_runtime.as_deref(),
+        game_id: args.game_id.as_deref(),
+        store: args.store.as_deref(),
     });
 
     manager.create_seed(&args.seed.name, &seed)
@@ -385,8 +385,8 @@ fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result
 
 fn set_wine_seed(manager: &FloraManager, args: &SetWineOpts) -> Result<(), FloraError> {
     let seed_opts = FloraUpdateSeed::WineOptions(FloraUpdateWineSeed {
-        wine_prefix: args.wine_prefix.clone(),
-        wine_runtime: args.wine_runtime.clone(),
+        wine_prefix: args.wine_prefix.as_deref(),
+        wine_runtime: args.wine_runtime.as_deref(),
     });
     manager.update_seed(&args.seed.name, &seed_opts)?;
     Ok(())
@@ -394,10 +394,10 @@ fn set_wine_seed(manager: &FloraManager, args: &SetWineOpts) -> Result<(), Flora
 
 fn set_proton_seed(manager: &FloraManager, args: &SetProtonOpts) -> Result<(), FloraError> {
     let seed_opts = FloraUpdateSeed::ProtonOptions(FloraUpdateProtonSeed {
-        proton_prefix: args.proton_prefix.clone(),
-        proton_runtime: args.proton_runtime.clone(),
-        game_id: args.game_id.clone(),
-        store: args.store.clone(),
+        proton_prefix: args.proton_prefix.as_deref(),
+        proton_runtime: args.proton_runtime.as_deref(),
+        game_id: args.game_id.as_deref(),
+        store: args.store.as_deref(),
     });
 
     manager.update_seed(&args.seed.name, &seed_opts)?;
@@ -496,28 +496,28 @@ fn main() -> Result<(), FloraError> {
             AppCommands::Add(app_add_opts) => manager.update_seed_apps(
                 &app_add_opts.seed.name,
                 &vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
-                    application_name: app_add_opts.application_name.clone(),
-                    application_location: app_add_opts.application_location.clone(),
+                    application_name: app_add_opts.application_name.as_str(),
+                    application_location: app_add_opts.application_location.as_str(),
                 })],
             ),
             AppCommands::Update(app_update_opts) => manager.update_seed_apps(
                 &app_update_opts.seed.name,
                 &vec![FloraSeedAppOperations::Update(FloraUpdateSeedApp {
-                    application_name: app_update_opts.application_name.clone(),
-                    application_location: app_update_opts.application_location.clone(),
+                    application_name: app_update_opts.application_name.as_str(),
+                    application_location: app_update_opts.application_location.as_deref(),
                 })],
             ),
             AppCommands::Rename(app_rename_opts) => manager.update_seed_apps(
                 &app_rename_opts.seed.name,
                 &vec![FloraSeedAppOperations::Rename(FloraRenameSeedApp {
-                    old_application_name: app_rename_opts.old_application_name.clone(),
-                    new_application_name: app_rename_opts.new_application_name.clone(),
+                    old_application_name: app_rename_opts.old_application_name.as_str(),
+                    new_application_name: app_rename_opts.new_application_name.as_str(),
                 })],
             ),
             AppCommands::Delete(app_delete_opts) => manager.update_seed_apps(
                 &app_delete_opts.seed.name,
                 &vec![FloraSeedAppOperations::Delete(FloraDeleteSeedApp {
-                    application_name: app_delete_opts.application_name.clone(),
+                    application_name: app_delete_opts.application_name.as_str(),
                 })],
             ),
             AppCommands::StartMenu(app_start_menu_opts) => manager.create_start_menu_app(
@@ -544,8 +544,13 @@ fn main() -> Result<(), FloraError> {
                 Some(args) => {
                     if opts.app {
                         // Launch an app entry
-                        let joined_args = args.join(" ").to_string();
-                        manager.seed_run_app(&opts.name, &Some(joined_args), opts.quiet, opts.wait)
+                        let joined_args = args.join(" ");
+                        manager.seed_run_app(
+                            &opts.name,
+                            &Some(joined_args.as_str()),
+                            opts.quiet,
+                            opts.wait,
+                        )
                     } else {
                         let args = args.iter().map(|s| s.as_str()).collect();
                         // Launch executable

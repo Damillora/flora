@@ -1,60 +1,60 @@
 // Create seed
-pub enum FloraCreateSeed {
-    WineOptions(FloraCreateWineSeed),
-    ProtonOptions(FloraCreateProtonSeed),
+pub enum FloraCreateSeed<'a> {
+    WineOptions(FloraCreateWineSeed<'a>),
+    ProtonOptions(FloraCreateProtonSeed<'a>),
 }
 
-pub enum FloraSeedAppOperations {
-    Add(FloraCreateSeedApp),
-    Update(FloraUpdateSeedApp),
-    Rename(FloraRenameSeedApp),
-    Delete(FloraDeleteSeedApp),
+pub enum FloraSeedAppOperations<'a> {
+    Add(FloraCreateSeedApp<'a>),
+    Update(FloraUpdateSeedApp<'a>),
+    Rename(FloraRenameSeedApp<'a>),
+    Delete(FloraDeleteSeedApp<'a>),
 }
 
-pub struct FloraCreateSeedApp {
-    pub application_name: String,
-    pub application_location: String,
+pub struct FloraCreateSeedApp<'a> {
+    pub application_name: &'a str,
+    pub application_location: &'a str,
 }
-pub struct FloraUpdateSeedApp {
-    pub application_name: String,
-    pub application_location: Option<String>,
+pub struct FloraUpdateSeedApp<'a> {
+    pub application_name: &'a str,
+    pub application_location: Option<&'a str>,
 }
-pub struct FloraRenameSeedApp {
-    pub old_application_name: String,
-    pub new_application_name: String,
+pub struct FloraRenameSeedApp<'a> {
+    pub old_application_name: &'a str,
+    pub new_application_name: &'a str,
 }
-pub struct FloraDeleteSeedApp {
-    pub application_name: String,
-}
-
-pub struct FloraCreateWineSeed {
-    pub default_application: Option<FloraCreateSeedApp>,
-    pub wine_prefix: Option<String>,
-    pub wine_runner: Option<String>,
+pub struct FloraDeleteSeedApp<'a> {
+    pub application_name: &'a str,
 }
 
-pub struct FloraCreateProtonSeed {
-    pub default_application: Option<FloraCreateSeedApp>,
-    pub proton_prefix: Option<String>,
-    pub proton_runtime: Option<String>,
-    pub game_id: Option<String>,
-    pub store: Option<String>,
+pub struct FloraCreateWineSeed<'a> {
+    pub default_application: Option<FloraCreateSeedApp<'a>>,
+    pub wine_prefix: Option<&'a str>,
+    pub wine_runner: Option<&'a str>,
+}
+
+pub struct FloraCreateProtonSeed<'a> {
+    pub default_application: Option<FloraCreateSeedApp<'a>>,
+    pub proton_prefix: Option<&'a str>,
+    pub proton_runtime: Option<&'a str>,
+    pub game_id: Option<&'a str>,
+    pub store: Option<&'a str>,
 }
 
 // Update
-pub enum FloraUpdateSeed {
-    WineOptions(FloraUpdateWineSeed),
-    ProtonOptions(FloraUpdateProtonSeed),
+pub enum FloraUpdateSeed<'a> {
+    WineOptions(FloraUpdateWineSeed<'a>),
+    ProtonOptions(FloraUpdateProtonSeed<'a>),
 }
 
-pub struct FloraUpdateWineSeed {
-    pub wine_prefix: Option<String>,
-    pub wine_runtime: Option<String>,
+pub struct FloraUpdateWineSeed<'a> {
+    pub wine_prefix: Option<&'a str>,
+    pub wine_runtime: Option<&'a str>,
 }
 
-pub struct FloraUpdateProtonSeed {
-    pub proton_prefix: Option<String>,
-    pub proton_runtime: Option<String>,
-    pub game_id: Option<String>,
-    pub store: Option<String>,
+pub struct FloraUpdateProtonSeed<'a> {
+    pub proton_prefix: Option<&'a str>,
+    pub proton_runtime: Option<&'a str>,
+    pub game_id: Option<&'a str>,
+    pub store: Option<&'a str>,
 }

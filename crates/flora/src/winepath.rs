@@ -10,7 +10,7 @@ pub fn windows_to_unix(wine_prefix: &Path, windows_path: &String) -> PathBuf {
         if let Utf8WindowsComponent::Prefix(drive_letter) = component {
             unix_path.push("dosdevices");
             if let Utf8WindowsPrefix::Disk(disk) = drive_letter.kind() {
-                unix_path.push(format!("{}:", disk.to_string().to_lowercase()));
+                unix_path.push(format!("{}:", String::from(disk).to_lowercase()));
             }
         } else if let Utf8WindowsComponent::Normal(normal) = component {
             unix_path.push(normal);
@@ -82,7 +82,7 @@ pub fn unix_to_windows(prefix: &PathBuf, unix_path: &Path) -> String {
             }
         }
     };
-    windows_path.to_string()
+    String::from(windows_path)
 }
 
 /// Tests

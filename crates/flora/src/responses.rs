@@ -29,7 +29,7 @@ pub struct FloraSeedAppItem {
 }
 
 impl FloraSeedItem {
-    pub(crate) fn from_config(name: &String, config: &FloraSeed) -> FloraSeedItem {
+    pub(crate) fn from_config(name: &str, config: &FloraSeed) -> FloraSeedItem {
         FloraSeedItem {
             name: String::from(name),
 

@@ -24,14 +24,14 @@ pub struct FloraManager {
 
 // Instance functions
 impl FloraManager {
-    fn seed_path(&self, name: &String) -> PathBuf {
+    fn seed_path(&self, name: &str) -> PathBuf {
         let mut new_seed_location = self.flora_dirs.get_seed_root();
         new_seed_location.push(format!("{}.toml", name));
 
         new_seed_location
     }
 
-    fn is_seed_exists(&self, name: &String) -> Result<bool, FloraError> {
+    fn is_seed_exists(&self, name: &str) -> Result<bool, FloraError> {
         let new_seed_location = self.seed_path(name);
 
         let result = fs::exists(new_seed_location).map_err(|_| FloraError::InternalError)?;
@@ -39,7 +39,7 @@ impl FloraManager {
         Ok(result)
     }
 
-    fn read_seed(&self, name: &String) -> Result<FloraSeed, FloraError> {
+    fn read_seed(&self, name: &str) -> Result<FloraSeed, FloraError> {
         let seed_path = self.seed_path(name);
         let seed_toml = fs::read_to_string(&seed_path)?;
         let seed: FloraSeed = toml::from_str(seed_toml.as_str())?;
@@ -47,7 +47,7 @@ impl FloraManager {
         Ok(seed)
     }
 
-    fn write_seed_config(&self, name: &String, seed: &FloraSeed) -> Result<(), FloraError> {
+    fn write_seed_config(&self, name: &str, seed: &FloraSeed) -> Result<(), FloraError> {
         let seed_toml = toml::to_string(seed)?;
 
         let seed_path = self.seed_path(name);
@@ -57,11 +57,7 @@ impl FloraManager {
     }
 
     /// Creates a new Flora seed
-    pub fn create_seed(
-        &self,
-        name: &String,
-        seed_opts: &FloraCreateSeed,
-    ) -> Result<(), FloraError> {
+    pub fn create_seed(&self, name: &str, seed_opts: &FloraCreateSeed) -> Result<(), FloraError> {
         if self.is_seed_exists(name)? {
             return Err(FloraError::SeedExists);
         }
@@ -86,7 +82,7 @@ impl FloraManager {
         Ok(())
     }
     /// Edit seed
-    pub fn update_seed(&self, name: &String, upd_data: &FloraUpdateSeed) -> Result<(), FloraError> {
+    pub fn update_seed(&self, name: &str, upd_data: &FloraUpdateSeed) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound);
         }
@@ -112,7 +108,7 @@ impl FloraManager {
     /// Edit seed apps
     pub fn update_seed_apps(
         &self,
-        name: &String,
+        name: &str,
         upd_data: &Vec<FloraSeedAppOperations>,
     ) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
@@ -138,11 +134,7 @@ impl FloraManager {
         Ok(())
     }
     /// Creates an app for seed from Start Menu item
-    pub fn create_start_menu_app(
-        &self,
-        name: &String,
-        menu_name: &String,
-    ) -> Result<(), FloraError> {
+    pub fn create_start_menu_app(&self, name: &str, menu_name: &str) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound);
         }
@@ -152,15 +144,15 @@ impl FloraManager {
         let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
         let start_menu_location = runner.get_start_menu_entry_location(menu_name)?;
         let update_seed_operation = vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
-            application_name: menu_name.to_string(),
-            application_location: start_menu_location,
+            application_name: menu_name,
+            application_location: start_menu_location.as_str(),
         })];
 
         self.update_seed_apps(name, &update_seed_operation)
     }
 
     /// Deletes new Flora seed
-    pub fn delete_seed(&self, name: &String) -> Result<(), FloraError> {
+    pub fn delete_seed(&self, name: &str) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound);
         }
@@ -201,7 +193,7 @@ impl FloraManager {
     }
 
     /// Deletes new Flora seed
-    pub fn show_seed(&self, name: &String) -> Result<FloraSeedItem, FloraError> {
+    pub fn show_seed(&self, name: &str) -> Result<FloraSeedItem, FloraError> {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound);
         }
@@ -214,7 +206,7 @@ impl FloraManager {
     /// Launches the prefix configuration dialog of an seed (usually winecfg)
     pub fn seed_config(
         &self,
-        name: &String,
+        name: &str,
         args: &Option<Vec<&str>>,
         quiet: bool,
         wait: bool,
@@ -232,7 +224,7 @@ impl FloraManager {
     /// Launches wine(proton)tricks inside an seed's prefix
     pub fn seed_tricks(
         &self,
-        name: &String,
+        name: &str,
         args: &Option<Vec<&str>>,
         quiet: bool,
         wait: bool,
@@ -250,8 +242,8 @@ impl FloraManager {
     /// Launches an app entry inside an seed's prefix
     pub fn seed_run_app(
         &self,
-        name: &String,
-        app_name: &Option<String>,
+        name: &str,
+        app_name: &Option<&str>,
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
@@ -282,7 +274,7 @@ impl FloraManager {
     /// Launches an executable inside an seed's prefix
     pub fn seed_run_executable(
         &self,
-        name: &String,
+        name: &str,
         args: &Vec<&str>,
         quiet: bool,
         wait: bool,
