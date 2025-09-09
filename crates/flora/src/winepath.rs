@@ -84,3 +84,63 @@ pub fn unix_to_windows(prefix: &PathBuf, unix_path: &Path) -> String {
     };
     windows_path.to_string()
 }
+
+/// Tests
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use crate::winepath::{unix_to_windows, windows_to_unix};
+
+    #[test]
+    fn unix_to_windows_root() {
+        let prefix = PathBuf::from("/wine/prefix");
+        let unix_path = PathBuf::from("/home/seed/Downloads/setup.exe");
+
+        assert_eq!(
+            unix_to_windows(&prefix, &unix_path),
+            "Z:\\home\\seed\\Downloads\\setup.exe"
+        );
+    }
+
+    #[test]
+    fn unix_to_windows_dosdevice() {
+        let prefix = PathBuf::from("/wine/prefix");
+        let unix_path = PathBuf::from(
+            "/wine/prefix/dosdevices/c:/ProgramData/Microsoft/Windows/Start Menu/Programs/Seed/Seed.lnk",
+        );
+
+        assert_eq!(
+            unix_to_windows(&prefix, &unix_path),
+            "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Seed\\Seed.lnk"
+        );
+    }
+
+    #[test]
+    fn unix_to_windows_drive() {
+        let prefix = PathBuf::from("/wine/prefix");
+        let unix_path = PathBuf::from(
+            "/wine/prefix/drive_c/ProgramData/Microsoft/Windows/Start Menu/Programs/Seed/Seed.lnk",
+        );
+
+        assert_eq!(
+            unix_to_windows(&prefix, &unix_path),
+            "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Seed\\Seed.lnk"
+        );
+    }
+
+    #[test]
+    fn windows_to_unix_test() {
+        let prefix = PathBuf::from("/wine/prefix");
+        let windows_path = String::from(
+            "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Seed\\Seed.lnk",
+        );
+
+        assert_eq!(
+            windows_to_unix(&prefix, &windows_path),
+            PathBuf::from(
+                "/wine/prefix/dosdevices/c:/ProgramData/Microsoft/Windows/Start Menu/Programs/Seed/Seed.lnk"
+            )
+        );
+    }
+}
