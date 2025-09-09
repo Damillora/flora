@@ -1,9 +1,13 @@
 [package]
 name = "flora_icon"
+description = "A seed for your Wine prefixes - Icon helper library"
 version = "0.1.0"
 edition = "2024"
+
 authors.workspace = true
-documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 ico = "0.4.0"

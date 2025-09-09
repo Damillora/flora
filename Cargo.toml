@@ -5,3 +5,12 @@ members = [ "crates/flora", "crates/flora_cli", "crates/flora_icon"]
 [workspace.package]
 authors = ["Damillora"]
 documentation = "https://flora.nanao.moe"
+homepage = "https://flora.nanao.moe"
+repository = "https://github.com/Damillora/flora"
+license = "GPL-3.0-or-later"
+
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

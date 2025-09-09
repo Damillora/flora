@@ -4,11 +4,11 @@ A seed for your Wine prefixes. Quickly launch your favorite Windows apps and gam
 
 ## Features
 
-* Manage Wine and Proton prefixes
-* Launch Proton using `umu-launcher`
-* Use Start Menu entries to start applications in a prefix
+* Manage Wine and Proton setups, configured in a `seed`. Each `seed` can have separate prefixes and runtimes.
+* Define application entries to be launched from a `seed`.
+* Generate application entries from Start Menu shortcuts.
 * Automatically generate application menus for easy access to Windows applications
-* Use custom Wine and Proton runtimes for certain applications
+* Use custom Wine and Proton runtimes for a `seed`.
 * Transparent configuration, everything is laid out in `toml` files
 
 ## Installation
@@ -51,7 +51,28 @@ flora run -a windows_app "Windows App"
 flora can also utilize additional Wine runtimes in `~/.local/share/flora/wine`, and additional Proton runtimes in `~/.local/share/flora/proton`.
 Runtimes in those folder can be managed with tools like [ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt).
 
-See [flora_cli README](crates/flora_cli/README.md) for more information
+### `flora` commands
+* `seed`: Manage seeds
+    * `seed list`: Lists all seeds
+    * `seed create`: Creates a seed
+    * `seed set`: Sets a seed's properties
+    * `seed delete`: Removes a seed
+    * `seed info`: Show a seed's information
+* `app`: Manage apps in a seed
+    * `app list`: Lists all apps in a seed
+    * `app add`: Adds an app into a seed
+    * `app update`: Updates an app in a seed
+    * `app rename`: Renames an app in a seed
+    * `app delete`: Removes an app from a seed
+* `start-menu`: Query Start Menu entries in a seed and create app entries based on them
+    * `start-menu list`: List all Start Menu entries in a seed
+    * `start-menu create-app`: Generates an app based on a Start Menu entry
+* `config`: Launches the seed's prefix configuration, usually `winecfg`.
+* `tricks`: Launches winetricks for the seed's prefix 
+* `run`: Runs an application in a seed
+* `generate-menu`: Generates menu entries for each app entries in a seed for launching from the application menu
+
+
 ## Configuration
 
 flora is configured using the file `flora.toml`, located in the `$HOME/.local/share/flora` folder. 
