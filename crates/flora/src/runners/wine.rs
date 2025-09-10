@@ -85,14 +85,7 @@ impl<'a> FloraWineRunner<'a> {
     }
 
     fn ensure_wine_dir(&self, wine_dir: &PathBuf) -> Result<(), FloraError> {
-        debug!(
-            "Wine dir: {}",
-            wine_dir
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Wine dir: {}", wine_dir.to_string_lossy());
 
         if !fs::exists(wine_dir)? {
             return Err(FloraError::MissingRunner);
@@ -102,14 +95,7 @@ impl<'a> FloraWineRunner<'a> {
     }
 
     fn ensure_wine_prefix(&self, wine_prefix: &PathBuf) -> Result<(), FloraError> {
-        debug!(
-            "Wine prefix: {}",
-            wine_prefix
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Wine prefix: {}", wine_prefix.to_string_lossy());
 
         if !fs::exists(wine_prefix)? {
             info!("Prefix not found, but will be created at launch");
@@ -171,14 +157,7 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             wine_exe.push("/usr/bin/wine");
         }
 
-        debug!(
-            "Using {} for winetricks",
-            wine_exe
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Using {} for winetricks", wine_exe.to_string_lossy());
 
         use std::process::Command;
         let mut command = Command::new("winetricks");
@@ -221,11 +200,7 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
 
         debug!(
             "Using {} to launch {}",
-            wine_exe
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?,
+            wine_exe.to_string_lossy(),
             args.join(" ")
         );
 
@@ -324,11 +299,7 @@ Terminal=false",
             debug!(
                 "Writing {} desktop entry to {}",
                 self.name,
-                desktop_entry_location
-                    .clone()
-                    .into_os_string()
-                    .into_string()
-                    .map_err(|_| FloraError::InternalError)?
+                desktop_entry_location.to_string_lossy()
             );
 
             fs::write(desktop_entry_location, desktop_entry)?;

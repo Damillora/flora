@@ -71,14 +71,7 @@ impl FloraDirs {
     pub fn get_log_file(&self, name: &str) -> Result<File, FloraError> {
         let mut log_file = self.get_log_root();
         log_file.push(format!("{}.log", name));
-        log::debug!(
-            "Logging outputs to {}",
-            log_file
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        log::debug!("Logging outputs to {}", log_file.clone().to_string_lossy(),);
 
         let log_file = File::options().append(true).create(true).open(log_file)?;
 

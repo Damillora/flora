@@ -98,14 +98,7 @@ impl<'a> FloraProtonRunner<'a> {
     }
 
     fn ensure_proton_tool(&self, proton_tool: &PathBuf) -> Result<(), FloraError> {
-        debug!(
-            "Proton tool dir: {}",
-            proton_tool
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Proton tool dir: {}", proton_tool.to_string_lossy());
 
         if !fs::exists(proton_tool)? {
             return Err(FloraError::MissingRunner);
@@ -115,14 +108,7 @@ impl<'a> FloraProtonRunner<'a> {
     }
 
     fn ensure_proton_prefix(&self, proton_prefix: &PathBuf) -> Result<(), FloraError> {
-        debug!(
-            "Proton prefix: {}",
-            proton_prefix
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Proton prefix: {}", proton_prefix.to_string_lossy());
 
         if !fs::exists(proton_prefix)? {
             info!("Prefix not found, but will be created at launch");
@@ -291,11 +277,7 @@ Terminal=false",
             debug!(
                 "Writing {} desktop entry to {}",
                 self.name,
-                desktop_entry_location
-                    .clone()
-                    .into_os_string()
-                    .into_string()
-                    .map_err(|_| FloraError::InternalError)?
+                desktop_entry_location.to_string_lossy()
             );
 
             fs::write(desktop_entry_location, desktop_entry)?;

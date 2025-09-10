@@ -193,12 +193,7 @@ impl FloraSeed {
                                             );
                                             new_path.push(prefix);
 
-                                            Some(
-                                                new_path
-                                                    .into_os_string()
-                                                    .into_string()
-                                                    .map_err(|_| FloraError::InternalError)?,
-                                            )
+                                            Some(String::from(new_path.to_string_lossy()))
                                         } else {
                                             // Prefix is absolute
                                             Some(String::from(prefix))
@@ -241,12 +236,7 @@ impl FloraSeed {
                                         );
                                         new_path.push(prefix);
 
-                                        Some(
-                                            new_path
-                                                .into_os_string()
-                                                .into_string()
-                                                .map_err(|_| FloraError::InternalError)?,
-                                        )
+                                        Some(String::from(new_path.to_string_lossy()))
                                     } else {
                                         // Prefix is absolute
                                         Some(String::from(prefix))

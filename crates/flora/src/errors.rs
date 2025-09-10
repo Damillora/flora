@@ -4,9 +4,6 @@ use flora_icon::FloraLinkError;
 
 /// Every error that Flora can throw
 pub enum FloraError {
-    /// Internal Flora error
-    InternalError,
-
     /// Seed already exists
     SeedExists,
 
@@ -50,7 +47,6 @@ pub enum FloraError {
 impl fmt::Debug for FloraError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InternalError => write!(f, "An internal error has occured"),
             Self::SeedExists => write!(f, "Seed already exists"),
             Self::SeedNotFound => write!(f, "Seed does not exist"),
             Self::SeedNoDefaultApp => write!(f, "Seed does not have a default app"),

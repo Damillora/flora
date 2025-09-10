@@ -26,11 +26,7 @@ pub(crate) fn initialize_desktop_entries(dirs: &FloraDirs) -> Result<(), FloraEr
     let directory_file = dirs.get_desktop_directory_file();
     debug!(
         "Writing directory entry to {}",
-        directory_file
-            .clone()
-            .into_os_string()
-            .into_string()
-            .map_err(|_| FloraError::InternalError)?
+        directory_file.to_string_lossy()
     );
 
     if !fs::exists(&directory_file)? {
@@ -38,14 +34,7 @@ pub(crate) fn initialize_desktop_entries(dirs: &FloraDirs) -> Result<(), FloraEr
     }
 
     let menu_file = dirs.get_desktop_menu_file();
-    debug!(
-        "Writing menu entry to {}",
-        menu_file
-            .clone()
-            .into_os_string()
-            .into_string()
-            .map_err(|_| FloraError::InternalError)?
-    );
+    debug!("Writing menu entry to {}", menu_file.to_string_lossy());
 
     if !fs::exists(&menu_file)? {
         fs::write(menu_file, flora_menu).map(|_| ())?;

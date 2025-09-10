@@ -42,18 +42,12 @@ impl FloraConfig {
                 wine_prefix_location: {
                     let prefixes_dir = dirs.get_prefixes_root();
 
-                    prefixes_dir
-                        .into_os_string()
-                        .into_string()
-                        .map_err(|_| FloraError::InternalError)?
+                    String::from(prefixes_dir.to_string_lossy())
                 },
                 default_wine_prefix: {
                     let prefixes_dir = dirs.get_fallback_prefix();
 
-                    prefixes_dir
-                        .into_os_string()
-                        .into_string()
-                        .map_err(|_| FloraError::InternalError)?
+                    String::from(prefixes_dir.to_string_lossy())
                 },
                 default_wine_runtime: None,
             }),
@@ -61,26 +55,19 @@ impl FloraConfig {
                 proton_prefix_location: {
                     let prefixes_dir = dirs.get_prefixes_root();
 
-                    prefixes_dir
-                        .into_os_string()
-                        .into_string()
-                        .map_err(|_| FloraError::InternalError)?
+                    String::from(prefixes_dir.to_string_lossy())
                 },
                 default_proton_prefix: {
                     let prefixes_dir = dirs.get_fallback_prefix_proton();
 
-                    prefixes_dir
-                        .into_os_string()
-                        .into_string()
-                        .map_err(|_| FloraError::InternalError)?
+                    String::from(prefixes_dir.to_string_lossy())
                 },
                 default_proton_runtime: String::from(""),
             }),
         };
 
         if !fs::exists(&config_path)? {
-            let new_config_toml =
-                toml::to_string(&default_config).map_err(|_| FloraError::InternalError)?;
+            let new_config_toml = toml::to_string(&default_config).map_err(FloraError::from)?;
 
             // Write the content to the file
             fs::write(&config_path, new_config_toml.as_bytes())?;

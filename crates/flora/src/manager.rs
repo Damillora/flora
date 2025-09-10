@@ -34,7 +34,7 @@ impl FloraManager {
     fn is_seed_exists(&self, name: &str) -> Result<bool, FloraError> {
         let new_seed_location = self.seed_path(name);
 
-        let result = fs::exists(new_seed_location).map_err(|_| FloraError::InternalError)?;
+        let result = fs::exists(new_seed_location).map_err(FloraError::from)?;
 
         Ok(result)
     }
@@ -64,17 +64,10 @@ impl FloraManager {
 
         let new_seed_location = self.seed_path(name);
 
-        debug!(
-            "Creating seed at {}",
-            &new_seed_location
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Creating seed at {}", &new_seed_location.to_string_lossy());
 
         let new_seed = FloraSeed::from_options(&self.config, seed_opts)?;
-        let new_toml = toml::to_string(&new_seed).map_err(|_| FloraError::InternalError)?;
+        let new_toml = toml::to_string(&new_seed).map_err(FloraError::from)?;
 
         // Write the content to the file
         fs::write(&new_seed_location, new_toml.as_bytes())?;
@@ -89,14 +82,7 @@ impl FloraManager {
 
         let seed_location = self.seed_path(name);
 
-        debug!(
-            "Updating seed at {}",
-            &seed_location
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Updating seed at {}", &seed_location.to_string_lossy());
 
         let mut seed_config = self.read_seed(name)?;
         seed_config.merge_options(upd_data)?;
@@ -117,14 +103,7 @@ impl FloraManager {
 
         let seed_location = self.seed_path(name);
 
-        debug!(
-            "Updating seed at {}",
-            &seed_location
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Updating seed at {}", &seed_location.to_string_lossy());
 
         let mut seed_config = self.read_seed(name)?;
         seed_config.update_apps(upd_data)?;
@@ -174,14 +153,7 @@ impl FloraManager {
 
         let seed_location = self.seed_path(name);
 
-        debug!(
-            "Deleting seed at {}",
-            &seed_location
-                .clone()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| FloraError::InternalError)?
-        );
+        debug!("Deleting seed at {}", &seed_location.to_string_lossy());
 
         fs::remove_file(&seed_location)?;
 
