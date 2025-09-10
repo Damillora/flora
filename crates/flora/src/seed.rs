@@ -116,7 +116,7 @@ impl FloraSeed {
                         .iter()
                         .position(|i| i.application_name == flora_update_seed_app.application_name)
                     {
-                        let app = self.apps.get_mut(idx).unwrap();
+                        let app = self.apps.get_mut(idx).ok_or(FloraError::SeedNoApp)?;
 
                         if let Some(app_location) = flora_update_seed_app.application_location {
                             app.application_location = String::from(app_location);
@@ -129,7 +129,7 @@ impl FloraSeed {
                     if let Some(idx) = self.apps.iter().position(|i| {
                         i.application_name == flora_rename_seed_app.old_application_name
                     }) {
-                        let app = self.apps.get_mut(idx).unwrap();
+                        let app = self.apps.get_mut(idx).ok_or(FloraError::SeedNoApp)?;
 
                         app.application_name =
                             String::from(flora_rename_seed_app.new_application_name);

@@ -4,9 +4,10 @@ use flora_icon::FloraLinkError;
 
 /// Every error that Flora can throw
 pub enum FloraError {
+    /// Unable to find home directory to initialize configuration
+    NoValidHome,
     /// Seed already exists
     SeedExists,
-
     /// Seed is not found
     SeedNotFound,
 
@@ -30,9 +31,6 @@ pub enum FloraError {
     /// Config for runner is not found
     MissingRunnerConfig,
 
-    /// Unable to launch seed
-    LaunchError,
-
     /// Something wrong when processing icons
     IconError(FloraLinkError),
 
@@ -47,18 +45,26 @@ pub enum FloraError {
 impl fmt::Debug for FloraError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            // Initializations errors
+            Self::NoValidHome => write!(
+                f,
+                "Cannot read configuration because of invalid home directory"
+            ),
+            // See derrors
             Self::SeedExists => write!(f, "Seed already exists"),
             Self::SeedNotFound => write!(f, "Seed does not exist"),
             Self::SeedNoDefaultApp => write!(f, "Seed does not have a default app"),
             Self::SeedNoApp => write!(f, "Seed does not have this app"),
             Self::SeedAppExists => write!(f, "App already exists"),
             Self::SeedUpdateMismatch => write!(f, "Attempting to update the wrong seed type"),
+            // Start menu errors
             Self::StartMenuNotFound => write!(f, "Cannot find Start Menu entry"),
+            // Runner errors
             Self::IncorrectRunner => write!(f, "Incorrect runner has been invoked"),
             Self::MissingRunner => write!(f, "Cannot find runner"),
             Self::MissingRunnerConfig => write!(f, "Cannot find config for runner"),
-            Self::LaunchError => write!(f, "Unable to launch seed"),
-            Self::IconError(_) => write!(f, "There was a problem processing icons"),
+            // Misc errors
+            Self::IconError(err) => write!(f, "There was a problem processing icons: {}", err),
             Self::ConfigError(err) => write!(f, "Config read error: {}", err),
             Self::ConfigSaveError(err) => write!(f, "Config save error: {}", err),
             Self::IoError(err) => write!(f, "IO error: {}", err),

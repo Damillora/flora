@@ -220,17 +220,10 @@ impl<'a> FloraRunner for FloraProtonRunner<'a> {
                 icon_name = flora_icon::get_icon_name_from_path(&location)?;
             } else if let FloraLink::WindowsIco(ico_path) = exe_find {
                 let windows_ico_path = winepath::windows_to_unix(&proton_prefix, &ico_path);
-                debug!(
-                    "We got icon from {}",
-                    &windows_ico_path
-                        .clone()
-                        .into_os_string()
-                        .into_string()
-                        .unwrap()
-                );
+                debug!("We got icon from {}", &windows_ico_path.to_string_lossy());
 
                 flora_icon::extract_icon_from_ico(&icon_path, &PathBuf::from(&windows_ico_path))?;
-                icon_name = icon_path.into_os_string().into_string().unwrap_or_default()
+                icon_name = String::from(icon_path.to_string_lossy())
             } else {
                 debug!("No icon location, search exe for icons");
                 let exe_location = match exe_find {
@@ -240,15 +233,8 @@ impl<'a> FloraRunner for FloraProtonRunner<'a> {
                 };
 
                 if flora_icon::extract_icon_from_exe(&icon_path, &exe_location)? {
-                    debug!(
-                        "We got icon from {}",
-                        exe_location
-                            .clone()
-                            .into_os_string()
-                            .into_string()
-                            .unwrap_or_default()
-                    );
-                    icon_name = icon_path.into_os_string().into_string().unwrap_or_default()
+                    debug!("We got icon from {}", exe_location.to_string_lossy());
+                    icon_name = String::from(icon_path.to_string_lossy())
                 };
             }
 
@@ -298,7 +284,7 @@ Terminal=false",
                     && file_name.eq_ignore_ascii_case(format!("{}.lnk", menu_name))
                 {
                     debug!("Found Start Menu item: {}", entry.path().display());
-                    let path = String::from(entry.path().to_str().unwrap_or_default());
+                    let path = String::from(entry.path().to_string_lossy());
 
                     let winepath = winepath::unix_to_windows(&proton_prefix, &PathBuf::from(path));
 
@@ -327,11 +313,11 @@ Terminal=false",
                     debug!("Found Start Menu item: {}", entry.path().display());
 
                     start_menu_entries.push(FloraSeedStartMenuItem {
-                        start_menu_name: String::from(file_stem.to_str().unwrap()),
-                        start_menu_location: String::from(winepath::unix_to_windows(
+                        start_menu_name: String::from(file_stem.to_string_lossy()),
+                        start_menu_location: winepath::unix_to_windows(
                             &proton_prefix,
                             entry.path(),
-                        )),
+                        ),
                     });
                 }
             }

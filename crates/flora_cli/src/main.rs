@@ -444,7 +444,7 @@ fn main() -> Result<(), FloraError> {
     env_logger::init();
     let cli = Cli::parse();
 
-    let manager = FloraManager::new();
+    let manager = FloraManager::new()?;
 
     match &cli.command {
         Commands::Seed(opts) => match &opts.commands {

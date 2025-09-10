@@ -104,21 +104,23 @@ impl FloraDirs {
         icon_path
     }
 
-    pub fn create_dirs(&self) {
-        fs::create_dir_all(&self.flora_root).unwrap();
-        fs::create_dir_all(&self.applications_entry_dir).unwrap();
-        fs::create_dir_all(self.get_seed_root()).unwrap();
-        fs::create_dir_all(self.get_wine_root()).unwrap();
-        fs::create_dir_all(self.get_proton_root()).unwrap();
-        fs::create_dir_all(self.get_log_root()).unwrap();
-        fs::create_dir_all(self.get_prefixes_root()).unwrap();
-        fs::create_dir_all(self.get_icons_root()).unwrap();
+    pub fn create_dirs(&self) -> Result<(), FloraError> {
+        fs::create_dir_all(&self.flora_root)?;
+        fs::create_dir_all(&self.applications_entry_dir)?;
+        fs::create_dir_all(self.get_seed_root())?;
+        fs::create_dir_all(self.get_wine_root())?;
+        fs::create_dir_all(self.get_proton_root())?;
+        fs::create_dir_all(self.get_log_root())?;
+        fs::create_dir_all(self.get_prefixes_root())?;
+        fs::create_dir_all(self.get_icons_root())?;
+
+        Ok(())
     }
 }
 
 impl FloraDirs {
-    pub fn new(flora_root: PathBuf) -> Self {
-        let base_dirs = BaseDirs::new().unwrap();
+    pub fn new(flora_root: PathBuf) -> Result<Self, FloraError> {
+        let base_dirs = BaseDirs::new().ok_or(FloraError::NoValidHome)?;
 
         let mut applications_entry_dir = base_dirs.data_dir().to_path_buf();
         applications_entry_dir.push("applications/flora");
@@ -132,12 +134,12 @@ impl FloraDirs {
         let mut steam_compat_dir = base_dirs.data_dir().to_path_buf();
         steam_compat_dir.push("Steam/compatibilitytools.d");
 
-        Self {
+        Ok(Self {
             flora_root,
             applications_entry_dir,
             applications_directory_dir,
             config_menu_dir,
             steam_compat_dir,
-        }
+        })
     }
 }

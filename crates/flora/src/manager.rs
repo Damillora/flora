@@ -164,19 +164,19 @@ impl FloraManager {
         let seed_dir = self.flora_dirs.get_seed_root();
 
         let files = read_dir(&seed_dir)?;
-        let list_items = files
-            .map(|seed_config_path| -> FloraSeedItem {
-                let path = seed_config_path.unwrap().path();
-                let file_stem = path.file_stem().unwrap_or_default();
-                let name = file_stem.to_os_string().into_string().unwrap();
 
-                let config = self.read_seed(&name).unwrap();
+        files
+            .map(|file_path| -> Result<PathBuf, FloraError> { Ok(file_path?.path()) })
+            .map(|seed_config_path| -> Result<FloraSeedItem, FloraError> {
+                let file_path = seed_config_path?;
+                let file_stem = file_path.file_stem().ok_or(FloraError::SeedNotFound)?;
+                let name = String::from(file_stem.to_string_lossy());
 
-                FloraSeedItem::from_config(&name, &config)
+                let config = self.read_seed(&name)?;
+
+                Ok(FloraSeedItem::from_config(&name, &config))
             })
-            .collect();
-
-        Ok(list_items)
+            .collect()
     }
 
     /// Deletes new Flora seed
@@ -285,11 +285,11 @@ impl FloraManager {
 
         let files = read_dir(&seed_dir)?;
         for seed_config_path in files {
-            let path = seed_config_path.unwrap().path();
-            let file_stem = path.file_stem().unwrap_or_default();
-            let name = file_stem.to_os_string().into_string().unwrap();
+            let path = seed_config_path?.path();
+            let file_stem = path.file_stem().ok_or(FloraError::SeedNotFound)?;
+            let name = file_stem.to_string_lossy();
 
-            let seed = self.read_seed(&name).unwrap();
+            let seed = self.read_seed(&name)?;
 
             debug!("Generating menu entries for seed {}", name);
 
@@ -304,25 +304,20 @@ impl FloraManager {
 // Static functions
 impl FloraManager {
     /// Creates a new FloraManager instance
-    pub fn new() -> Self {
-        let proj_dirs = ProjectDirs::from("com", "Damillora", "Flora").unwrap();
+    pub fn new() -> Result<Self, FloraError> {
+        let proj_dirs =
+            ProjectDirs::from("com", "Damillora", "Flora").ok_or(FloraError::NoValidHome)?;
         let flora_root = proj_dirs.data_dir().to_path_buf();
 
-        let dirs = FloraDirs::new(flora_root);
-        dirs.create_dirs();
+        let dirs = FloraDirs::new(flora_root)?;
+        dirs.create_dirs()?;
 
         // Read config
-        let config = FloraConfig::read_config(&dirs).unwrap();
+        let config = FloraConfig::read_config(&dirs)?;
 
-        Self {
+        Ok(Self {
             flora_dirs: Box::new(dirs),
             config: Box::new(config),
-        }
-    }
-}
-
-impl Default for FloraManager {
-    fn default() -> Self {
-        Self::new()
+        })
     }
 }
