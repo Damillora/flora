@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- BREAKING CHANGE: Shorten app-related flags
+  - `default_application_name` -> `app_name`
+  - `application_name` -> `app_name`
+  - `default_application_location` -> `app_location`
+  - `application_location` -> `app_location`
 - Clean up error handling
 - Add custom launcher commands for a `seed`
 

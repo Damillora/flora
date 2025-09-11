@@ -264,9 +264,9 @@ pub struct AppRenameOpts {
     seed: AppSeedOpts,
 
     /// Old name of the app
-    old_application_name: String,
+    old_app_name: String,
     /// New name of the app
-    new_application_name: String,
+    new_app_name: String,
 }
 
 #[derive(Args)]
@@ -275,7 +275,7 @@ pub struct AppDeleteOpts {
     seed: AppSeedOpts,
 
     /// Name for the app
-    application_name: String,
+    app_name: String,
 }
 #[derive(Args)]
 pub struct StartMenuOpts {
@@ -559,14 +559,14 @@ fn main() -> Result<(), FloraError> {
             AppCommands::Rename(app_rename_opts) => manager.update_seed_apps(
                 &app_rename_opts.seed.name,
                 &vec![FloraSeedAppOperations::Rename(FloraRenameSeedApp {
-                    old_application_name: app_rename_opts.old_application_name.as_str(),
-                    new_application_name: app_rename_opts.new_application_name.as_str(),
+                    old_application_name: app_rename_opts.old_app_name.as_str(),
+                    new_application_name: app_rename_opts.new_app_name.as_str(),
                 })],
             ),
             AppCommands::Delete(app_delete_opts) => manager.update_seed_apps(
                 &app_delete_opts.seed.name,
                 &vec![FloraSeedAppOperations::Delete(FloraDeleteSeedApp {
-                    application_name: app_delete_opts.application_name.as_str(),
+                    application_name: app_delete_opts.app_name.as_str(),
                 })],
             ),
         },
