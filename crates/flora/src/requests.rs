@@ -26,14 +26,18 @@ pub struct FloraRenameSeedApp<'a> {
 pub struct FloraDeleteSeedApp<'a> {
     pub application_name: &'a str,
 }
-
+pub struct FloraCreateSeedSettings<'a> {
+    pub launcher_command: Option<&'a str>,
+}
 pub struct FloraCreateWineSeed<'a> {
+    pub settings: Option<FloraCreateSeedSettings<'a>>,
     pub default_application: Option<FloraCreateSeedApp<'a>>,
     pub wine_prefix: Option<&'a str>,
     pub wine_runner: Option<&'a str>,
 }
 
 pub struct FloraCreateProtonSeed<'a> {
+    pub settings: Option<FloraCreateSeedSettings<'a>>,
     pub default_application: Option<FloraCreateSeedApp<'a>>,
     pub proton_prefix: Option<&'a str>,
     pub proton_runtime: Option<&'a str>,

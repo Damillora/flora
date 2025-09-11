@@ -1,4 +1,8 @@
-use std::{fs, path::PathBuf, process::Stdio};
+use std::{
+    fs,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 use flora_icon::FloraLink;
 use log::{debug, info};
@@ -11,7 +15,7 @@ use crate::{
     errors::FloraError,
     responses::FloraSeedStartMenuItem,
     runners::FloraRunner,
-    seed::{FloraProtonSeed, FloraSeedApp},
+    seed::{FloraProtonSeed, FloraSeedApp, FloraSeedSettings},
     winepath,
 };
 
@@ -19,6 +23,7 @@ pub struct FloraProtonRunner<'a> {
     name: &'a str,
     dirs: &'a FloraDirs,
     config: &'a FloraConfig,
+    settings: &'a Option<Box<FloraSeedSettings>>,
     proton_seed: &'a FloraProtonSeed,
     apps: &'a Vec<FloraSeedApp>,
 }
@@ -28,6 +33,7 @@ impl<'a> FloraProtonRunner<'a> {
         name: &'a str,
         dirs: &'a FloraDirs,
         config: &'a FloraConfig,
+        settings: &'a Option<Box<FloraSeedSettings>>,
         proton_seed: &'a FloraProtonSeed,
         apps: &'a Vec<FloraSeedApp>,
     ) -> Self {
@@ -35,6 +41,7 @@ impl<'a> FloraProtonRunner<'a> {
             name,
             dirs,
             config,
+            settings,
             proton_seed,
             apps,
         }
@@ -132,6 +139,50 @@ impl<'a> FloraProtonRunner<'a> {
 
         proton_prefix
     }
+    fn gather_command_info(&self) -> Result<(PathBuf, PathBuf), FloraError> {
+        let proton_tool = self.get_proton_tool()?;
+        let proton_prefix = self.get_proton_prefix();
+
+        self.ensure_proton_tool(&proton_tool)?;
+        self.ensure_proton_prefix(&proton_prefix)?;
+
+        Ok((proton_tool, proton_prefix))
+    }
+    fn generate_command(&self, args: &[&str]) -> Result<Command, FloraError> {
+        let (proton_tool, proton_prefix) = self.gather_command_info()?;
+        let mut command = if let Some(settings) = self.settings
+            && let Some(launcher) = &settings.launcher_command
+        {
+            let command_param = shlex::split(launcher).ok_or(FloraError::IncorrectLauncher)?;
+            let (launch_command, launch_args) = (
+                &command_param.first().ok_or(FloraError::IncorrectLauncher)?,
+                &command_param[1..],
+            );
+
+            let mut command = Command::new(launch_command);
+            command.args(launch_args);
+            command.arg("umu-run");
+
+            command
+        } else {
+            Command::new("umu-run")
+        };
+        command
+            .env("WINEPREFIX", proton_prefix)
+            .env("PROTONPATH", proton_tool)
+            .args(args);
+
+        if let Some(game_id) = &self.proton_seed.game_id {
+            command.env("GAMEID", game_id);
+        }
+        if let Some(store) = &self.proton_seed.store {
+            command.env("STORE", store);
+        }
+
+        debug!("Using {} to launch {}", "umu-run", args.join(" "));
+
+        Ok(command)
+    }
 }
 impl<'a> FloraRunner for FloraProtonRunner<'a> {
     fn run_config(
@@ -165,27 +216,8 @@ impl<'a> FloraRunner for FloraProtonRunner<'a> {
     }
 
     fn run_executable(&self, args: &[&str], quiet: bool, wait: bool) -> Result<(), FloraError> {
-        let proton_tool = self.get_proton_tool()?;
-        let proton_prefix = self.get_proton_prefix();
+        let mut command = self.generate_command(args)?;
 
-        self.ensure_proton_tool(&proton_tool)?;
-        self.ensure_proton_prefix(&proton_prefix)?;
-
-        debug!("Using {} to launch {}", "umu-run", args.join(" "));
-
-        use std::process::Command;
-        let mut command = Command::new("umu-run");
-        command
-            .env("WINEPREFIX", proton_prefix)
-            .env("PROTONPATH", proton_tool)
-            .args(args);
-
-        if let Some(game_id) = &self.proton_seed.game_id {
-            command.env("GAMEID", game_id);
-        }
-        if let Some(store) = &self.proton_seed.store {
-            command.env("STORE", store);
-        }
         if quiet {
             let log_out = self.dirs.get_log_file(self.name)?;
             let log_err = self.dirs.get_log_file(self.name)?;

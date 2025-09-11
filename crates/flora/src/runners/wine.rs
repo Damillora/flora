@@ -1,4 +1,8 @@
-use std::{fs, path::PathBuf, process::Stdio};
+use std::{
+    fs,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 use flora_icon::FloraLink;
 use log::{debug, info};
@@ -11,7 +15,7 @@ use crate::{
     errors::FloraError,
     responses::FloraSeedStartMenuItem,
     runners::FloraRunner,
-    seed::{FloraSeedApp, FloraWineSeed},
+    seed::{FloraSeedApp, FloraSeedSettings, FloraWineSeed},
     winepath,
 };
 
@@ -19,6 +23,7 @@ pub struct FloraWineRunner<'a> {
     name: &'a str,
     dirs: &'a FloraDirs,
     config: &'a FloraConfig,
+    settings: &'a Option<Box<FloraSeedSettings>>,
     wine_seed: &'a FloraWineSeed,
     apps: &'a Vec<FloraSeedApp>,
 }
@@ -28,6 +33,7 @@ impl<'a> FloraWineRunner<'a> {
         name: &'a str,
         dirs: &'a FloraDirs,
         config: &'a FloraConfig,
+        settings: &'a Option<Box<FloraSeedSettings>>,
         wine_seed: &'a FloraWineSeed,
         apps: &'a Vec<FloraSeedApp>,
     ) -> Self {
@@ -35,6 +41,7 @@ impl<'a> FloraWineRunner<'a> {
             name,
             dirs,
             config,
+            settings,
             wine_seed,
             apps,
         }
@@ -119,6 +126,55 @@ impl<'a> FloraWineRunner<'a> {
 
         wine_prefix
     }
+
+    fn gather_command_info(&self) -> Result<(PathBuf, PathBuf), FloraError> {
+        let wine_dir = self.get_wine_dir();
+        let wine_prefix = self.get_wine_prefix();
+
+        self.ensure_wine_dir(&wine_dir)?;
+        self.ensure_wine_prefix(&wine_prefix)?;
+
+        Ok((wine_dir, wine_prefix))
+    }
+    fn generate_command(&self, args: &[&str]) -> Result<Command, FloraError> {
+        let (wine_runtime, wine_prefix) = self.gather_command_info()?;
+
+        let mut wine_exe = wine_runtime.clone();
+        if !wine_runtime.to_string_lossy().is_empty() {
+            wine_exe.push("bin/wine");
+        } else {
+            // Use system wine
+            wine_exe.push("/usr/bin/wine");
+        }
+
+        let mut command = if let Some(settings) = self.settings
+            && let Some(launcher) = &settings.launcher_command
+        {
+            let command_param = shlex::split(launcher).ok_or(FloraError::IncorrectLauncher)?;
+            let (launch_command, launch_args) = (
+                &command_param.first().ok_or(FloraError::IncorrectLauncher)?,
+                &command_param[1..],
+            );
+
+            let mut command = Command::new(launch_command);
+            command.args(launch_args);
+            command.arg(&wine_exe);
+
+            command
+        } else {
+            Command::new(&wine_exe)
+        };
+
+        command.env("WINEPREFIX", wine_prefix).args(args);
+
+        debug!(
+            "Using {} to launch {}",
+            wine_exe.to_string_lossy(),
+            args.join(" ")
+        );
+
+        Ok(command)
+    }
 }
 
 impl<'a> FloraRunner for FloraWineRunner<'a> {
@@ -143,11 +199,7 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
         quiet: bool,
         wait: bool,
     ) -> Result<(), FloraError> {
-        let wine_dir = self.get_wine_dir();
-        let wine_prefix = self.get_wine_prefix();
-
-        self.ensure_wine_dir(&wine_dir)?;
-        self.ensure_wine_prefix(&wine_prefix)?;
+        let (wine_dir, wine_prefix) = self.gather_command_info()?;
 
         let mut wine_exe = wine_dir.clone();
         if !wine_dir.as_os_str().is_empty() {
@@ -184,29 +236,8 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
     }
 
     fn run_executable(&self, args: &[&str], quiet: bool, wait: bool) -> Result<(), FloraError> {
-        let wine_dir = self.get_wine_dir();
-        let wine_prefix = self.get_wine_prefix();
+        let mut command = self.generate_command(args)?;
 
-        self.ensure_wine_dir(&wine_dir)?;
-        self.ensure_wine_prefix(&wine_prefix)?;
-
-        let mut wine_exe = wine_dir.clone();
-        if !wine_dir.as_os_str().is_empty() {
-            wine_exe.push("bin/wine");
-        } else {
-            // Use system wine
-            wine_exe.push("/usr/bin/wine");
-        }
-
-        debug!(
-            "Using {} to launch {}",
-            wine_exe.to_string_lossy(),
-            args.join(" ")
-        );
-
-        use std::process::Command;
-        let mut command = Command::new(wine_exe);
-        command.env("WINEPREFIX", wine_prefix).args(args);
         if quiet {
             let log_out = self.dirs.get_log_file(self.name)?;
             let log_err = self.dirs.get_log_file(self.name)?;

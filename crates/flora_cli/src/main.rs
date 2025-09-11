@@ -3,9 +3,9 @@ use flora::{
     errors::FloraError,
     manager::FloraManager,
     requests::{
-        FloraCreateProtonSeed, FloraCreateSeed, FloraCreateSeedApp, FloraCreateWineSeed,
-        FloraDeleteSeedApp, FloraRenameSeedApp, FloraSeedAppOperations, FloraUpdateProtonSeed,
-        FloraUpdateSeed, FloraUpdateSeedApp, FloraUpdateWineSeed,
+        FloraCreateProtonSeed, FloraCreateSeed, FloraCreateSeedApp, FloraCreateSeedSettings,
+        FloraCreateWineSeed, FloraDeleteSeedApp, FloraRenameSeedApp, FloraSeedAppOperations,
+        FloraUpdateProtonSeed, FloraUpdateSeed, FloraUpdateSeedApp, FloraUpdateWineSeed,
     },
     responses::{FloraSeedAppItem, FloraSeedItem, FloraSeedStartMenuItem},
 };
@@ -82,16 +82,19 @@ pub enum CreateCommands {
 pub struct CreateSeedOpts {
     /// Name of seed
     name: String,
+    /// Launcher command for applications
+    #[arg(short = 'c', long, required = false)]
+    launcher: Option<String>,
 }
 #[derive(Args)]
 #[group()]
 pub struct CreateSeedDefaultOpts {
     /// Default application name for the seed
     #[arg(short = 'n', long, required = false)]
-    default_application_name: String,
+    app_name: String,
     /// Default executable location for the seed, passed to wine or proton.
     #[arg(short = 'l', long, required = false)]
-    default_application_location: String,
+    app_location: String,
 }
 #[derive(Args)]
 pub struct CreateWineOpts {
@@ -238,10 +241,10 @@ pub struct AppAddOpts {
     seed: AppSeedOpts,
 
     /// Name for the app
-    application_name: String,
+    app_name: String,
     /// Location for the app, passed to wine or proton.
     #[arg(short = 'l', long)]
-    application_location: String,
+    app_location: String,
 }
 
 #[derive(Args)]
@@ -250,10 +253,10 @@ pub struct AppUpdateOpts {
     seed: AppSeedOpts,
 
     /// Name for the app
-    application_name: String,
+    app_name: String,
     /// Location for the app, passed to wine or proton.
     #[arg(short = 'l', long)]
-    application_location: Option<String>,
+    app_location: Option<String>,
 }
 #[derive(Args)]
 pub struct AppRenameOpts {
@@ -302,7 +305,10 @@ pub struct StartMenuGenerateAppOpts {
     name: String,
 
     /// Name of the Start Menu entry
-    application_name: String,
+    app_name: String,
+
+    #[arg(short = 'c', long)]
+    app_command: Option<String>,
 }
 
 #[derive(Args)]
@@ -386,12 +392,15 @@ impl<'a> From<&'a FloraSeedStartMenuItem> for SeedStartMenuTableRow<'a> {
 
 fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::WineOptions(FloraCreateWineSeed {
+        settings: Some(FloraCreateSeedSettings {
+            launcher_command: args.seed.launcher.as_deref(),
+        }),
         default_application: args
             .default_opts
             .as_ref()
             .map(|default_opt| FloraCreateSeedApp {
-                application_name: default_opt.default_application_name.as_str(),
-                application_location: default_opt.default_application_location.as_str(),
+                application_name: default_opt.app_name.as_str(),
+                application_location: default_opt.app_location.as_str(),
             }),
 
         wine_prefix: args.wine_prefix.as_deref(),
@@ -403,12 +412,15 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
 
 fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result<(), FloraError> {
     let seed = FloraCreateSeed::ProtonOptions(FloraCreateProtonSeed {
+        settings: Some(FloraCreateSeedSettings {
+            launcher_command: args.seed.launcher.as_deref(),
+        }),
         default_application: args
             .default_opts
             .as_ref()
             .map(|default_opt| FloraCreateSeedApp {
-                application_name: default_opt.default_application_name.as_str(),
-                application_location: default_opt.default_application_location.as_str(),
+                application_name: default_opt.app_name.as_str(),
+                application_location: default_opt.app_location.as_str(),
             }),
 
         proton_prefix: args.proton_prefix.as_deref(),
@@ -533,15 +545,15 @@ fn main() -> Result<(), FloraError> {
             AppCommands::Add(app_add_opts) => manager.update_seed_apps(
                 &app_add_opts.seed.name,
                 &vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
-                    application_name: app_add_opts.application_name.as_str(),
-                    application_location: app_add_opts.application_location.as_str(),
+                    application_name: app_add_opts.app_name.as_str(),
+                    application_location: app_add_opts.app_location.as_str(),
                 })],
             ),
             AppCommands::Update(app_update_opts) => manager.update_seed_apps(
                 &app_update_opts.seed.name,
                 &vec![FloraSeedAppOperations::Update(FloraUpdateSeedApp {
-                    application_name: app_update_opts.application_name.as_str(),
-                    application_location: app_update_opts.application_location.as_deref(),
+                    application_name: app_update_opts.app_name.as_str(),
+                    application_location: app_update_opts.app_location.as_deref(),
                 })],
             ),
             AppCommands::Rename(app_rename_opts) => manager.update_seed_apps(
@@ -582,7 +594,7 @@ fn main() -> Result<(), FloraError> {
             StartMenuCommands::CreateApp(start_menu_create_app_opts) => manager
                 .create_start_menu_app(
                     &start_menu_create_app_opts.name,
-                    &start_menu_create_app_opts.application_name,
+                    &start_menu_create_app_opts.app_name,
                 ),
         },
         Commands::Config(opts) => {

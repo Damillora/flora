@@ -31,6 +31,9 @@ pub enum FloraError {
     /// Config for runner is not found
     MissingRunnerConfig,
 
+    /// Cannot parse launcher command
+    IncorrectLauncher,
+
     /// Something wrong when processing icons
     IconError(FloraLinkError),
 
@@ -63,6 +66,8 @@ impl fmt::Debug for FloraError {
             Self::IncorrectRunner => write!(f, "Incorrect runner has been invoked"),
             Self::MissingRunner => write!(f, "Cannot find runner"),
             Self::MissingRunnerConfig => write!(f, "Cannot find config for runner"),
+            // Launcher errors
+            Self::IncorrectLauncher => write!(f, "Cannot parse launcher command"),
             // Misc errors
             Self::IconError(err) => write!(f, "There was a problem processing icons: {}", err),
             Self::ConfigError(err) => write!(f, "Config read error: {}", err),

@@ -33,10 +33,16 @@ pub(crate) struct FloraProtonSeed {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct FloraSeed {
+    pub settings: Option<Box<FloraSeedSettings>>,
     pub apps: Vec<FloraSeedApp>,
 
     #[serde(flatten)]
     pub seed_type: FloraSeedType,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct FloraSeedSettings {
+    pub launcher_command: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -167,6 +173,14 @@ impl FloraSeed {
             FloraCreateSeed::WineOptions(opts) => {
                 if let Some(wine_opts) = &config.wine {
                     Ok(FloraSeed {
+                        settings: opts
+                            .settings
+                            .as_ref()
+                            .map(|m| FloraSeedSettings {
+                                launcher_command: m.launcher_command.map(String::from),
+                            })
+                            .map(Box::from)
+                            .to_owned(),
                         apps: match &opts.default_application {
                             Some(default_application) => {
                                 vec![FloraSeedApp {
@@ -211,6 +225,14 @@ impl FloraSeed {
             FloraCreateSeed::ProtonOptions(opts) => {
                 if let Some(proton_opts) = &config.proton {
                     Ok(FloraSeed {
+                        settings: opts
+                            .settings
+                            .as_ref()
+                            .map(|m| FloraSeedSettings {
+                                launcher_command: m.launcher_command.map(String::from),
+                            })
+                            .map(Box::from)
+                            .to_owned(),
                         apps: match &opts.default_application {
                             Some(default_application) => {
                                 vec![FloraSeedApp {

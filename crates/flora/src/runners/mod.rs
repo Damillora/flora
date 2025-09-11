@@ -39,12 +39,14 @@ pub fn create_runner<'a>(
 ) -> Box<dyn FloraRunner + 'a> {
     match &seed.seed_type {
         FloraSeedType::Wine(wine_seed) => {
-            let runner = FloraWineRunner::new(name, dirs, config, wine_seed, &seed.apps);
+            let runner =
+                FloraWineRunner::new(name, dirs, config, &seed.settings, wine_seed, &seed.apps);
 
             Box::new(runner)
         }
         FloraSeedType::Proton(proton_seed) => {
-            let runner = FloraProtonRunner::new(name, dirs, config, proton_seed, &seed.apps);
+            let runner =
+                FloraProtonRunner::new(name, dirs, config, &seed.settings, proton_seed, &seed.apps);
 
             Box::new(runner)
         }

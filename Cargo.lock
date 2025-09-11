@@ -387,6 +387,7 @@ dependencies = [
  "flora_icon",
  "log",
  "serde",
+ "shlex",
  "toml",
  "typed-path",
  "walkdir",

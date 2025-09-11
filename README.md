@@ -89,9 +89,11 @@ This file will be automatically generated with defaults when `flora` is run for 
   * `default_proton_runtime`: Default Proton runtime used by seeds. Default is empty.
 
 Each application is configured in `.toml` files, located in `$HOME/.local/share/flora/seeds` folder.
+* `[settings]`
+  * `launcher_command`: Launch command for Wine or `umu-launcher`, e.g. to use Gamescope to launch apps inside a seed.
 * `[[apps]`: The first `[[app]]` is the default application for the seed, and any subsequent `[[apps]]` can be launched using `flora run -a <seed> "<application_name>"`
-* `application_name`: Name of default application shown on menu
-* `application_location`: The executable to be launched when using the `run` command without arguments.
+  * `application_name`: Name of default application shown on menu
+  * `application_location`: The executable to be launched when using the `run` command without arguments.
 * `[wine]`
   * `wine_prefix`: Prefix used by the seed.
   * `wine_runtime`: Wine runtime used by the seed.
