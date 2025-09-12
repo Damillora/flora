@@ -13,7 +13,8 @@ A seed for your Wine prefixes. Quickly launch your favorite Windows apps and gam
 
 ## Installation
 
-flora depends on `wine` and `winetricks`. Proton support additionally depends on `umu-launcher`.
+flora depends on `wine` and `winetricks`. Proton support additionally depends on `umu-launcher`, either installed as a package or a local zipapp version at `~/.local/share/flora/umu`.
+
 ### From releases
 
 Grab the latest binary from the [Releases](https://github.com/Damillora/flora/releases) page.
