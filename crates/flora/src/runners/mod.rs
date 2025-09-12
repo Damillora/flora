@@ -39,12 +39,12 @@ pub fn create_runner<'a>(
 ) -> Result<Box<dyn FloraRunner + 'a>, FloraError> {
     match &seed.seed_type {
         FloraSeedType::Wine(wine_seed) => {
-            let runner = FloraWineRunner::new(name, dirs, config, &seed.settings, wine_seed);
+            let runner = FloraWineRunner::new(name, dirs, config, &seed.settings, wine_seed)?;
 
             Ok(Box::new(runner))
         }
         FloraSeedType::Proton(proton_seed) => {
-            let runner = FloraProtonRunner::new(name, dirs, config, &seed.settings, proton_seed);
+            let runner = FloraProtonRunner::new(name, dirs, config, &seed.settings, proton_seed)?;
 
             Ok(Box::new(runner))
         }

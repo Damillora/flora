@@ -21,9 +21,10 @@ use crate::{
 pub struct FloraWineRunner<'a> {
     name: &'a str,
     dirs: &'a FloraDirs,
-    config: &'a FloraConfig,
     settings: &'a Option<Box<FloraSeedSettings>>,
-    wine_seed: &'a FloraWineSeed,
+
+    prefix: PathBuf,
+    runtime: PathBuf,
 }
 
 impl<'a> FloraWineRunner<'a> {
@@ -33,32 +34,34 @@ impl<'a> FloraWineRunner<'a> {
         config: &'a FloraConfig,
         settings: &'a Option<Box<FloraSeedSettings>>,
         wine_seed: &'a FloraWineSeed,
-    ) -> Self {
-        Self {
-            name,
-            dirs,
-            config,
-            settings,
-            wine_seed,
-        }
-    }
-}
+    ) -> Result<Self, FloraError> {
+        let wine_prefix = if let Some(path) = &wine_seed.wine_prefix {
+            // Prefix is defined in seed
+            // Use prefix defined in seed.
+            PathBuf::from(path.clone())
+        } else if let Some(wine_config) = &config.wine {
+            // Prefix is not defined in seed, but there is a default prefix defined globally.
+            // Use default prefix from global configuration.
+            PathBuf::from(&wine_config.default_wine_prefix)
+        } else {
+            // Prefix is not defined in seed and default prefix is not set.
+            // Use a well-known fallback prefix directory.
+            dirs.get_fallback_prefix()
+        };
 
-impl<'a> FloraWineRunner<'a> {
-    fn get_wine_dir(&self) -> PathBuf {
-        if let Some(runner) = &self.wine_seed.wine_runtime {
+        let wine_runtime = if let Some(runner) = &wine_seed.wine_runtime {
             // Wine runtime is defined in seed.
             // Use Wine runtime defined in seed.
-            let mut wine_path = self.dirs.get_wine_root();
+            let mut wine_path = dirs.get_wine_root();
             wine_path.push(runner);
             PathBuf::from(&wine_path)
-        } else if let Some(wine_config) = &self.config.wine {
+        } else if let Some(wine_config) = &config.wine {
             if let Some(default_wine_runtime) = &wine_config.default_wine_runtime
                 && !default_wine_runtime.is_empty()
             {
                 // Wine runtime is not defined in seed, but defined globally.
                 // Use Wine runtime defined in global configuration
-                let mut wine_path = self.dirs.get_wine_root();
+                let mut wine_path = dirs.get_wine_root();
                 wine_path.push(default_wine_runtime.clone());
                 PathBuf::from(&wine_path)
             } else {
@@ -68,47 +71,32 @@ impl<'a> FloraWineRunner<'a> {
             // Wine runtime is not defined in seed and globally.
             // Use system wine in /usr
             PathBuf::from("/usr")
-        }
-    }
+        };
+        debug!("Wine dir: {}", &wine_runtime.to_string_lossy());
 
-    fn get_wine_prefix(&self) -> PathBuf {
-        if let Some(path) = &self.wine_seed.wine_prefix {
-            // Prefix is defined in seed
-            // Use prefix defined in seed.
-            PathBuf::from(path.clone())
-        } else if let Some(wine_config) = &self.config.wine {
-            // Prefix is not defined in seed, but there is a default prefix defined globally.
-            // Use default prefix from global configuration.
-            PathBuf::from(&wine_config.default_wine_prefix)
-        } else {
-            // Prefix is not defined in seed and default prefix is not set.
-            // Use a well-known fallback prefix directory.
-            self.dirs.get_fallback_prefix()
-        }
-    }
-
-    fn ensure_wine_dir(&self, wine_dir: &PathBuf) -> Result<(), FloraError> {
-        debug!("Wine dir: {}", wine_dir.to_string_lossy());
-
-        if !fs::exists(wine_dir)? {
+        if !fs::exists(&wine_runtime)? {
             return Err(FloraError::MissingRunner);
         }
-
-        Ok(())
-    }
-
-    fn ensure_wine_prefix(&self, wine_prefix: &PathBuf) -> Result<(), FloraError> {
         debug!("Wine prefix: {}", wine_prefix.to_string_lossy());
 
-        if !fs::exists(wine_prefix)? {
+        if !fs::exists(&wine_prefix)? {
             info!("Prefix not found, but will be created at launch");
         }
 
-        Ok(())
-    }
+        Ok(Self {
+            name,
+            dirs,
+            settings,
 
+            prefix: wine_prefix,
+            runtime: wine_runtime,
+        })
+    }
+}
+
+impl<'a> FloraWineRunner<'a> {
     fn get_start_menu_dir(&self) -> PathBuf {
-        let mut wine_prefix = self.get_wine_prefix();
+        let mut wine_prefix = self.prefix.clone();
         wine_prefix.push("drive_c/users");
         wine_prefix.push(whoami::username());
         wine_prefix.push("AppData/Roaming/Microsoft/Windows/Start Menu");
@@ -117,20 +105,14 @@ impl<'a> FloraWineRunner<'a> {
     }
 
     fn get_system_start_menu_dir(&self) -> PathBuf {
-        let mut wine_prefix = self.get_wine_prefix();
+        let mut wine_prefix = self.prefix.clone();
         wine_prefix.push("drive_c/ProgramData/Microsoft/Windows/Start Menu");
 
         wine_prefix
     }
 
     fn gather_command_info(&self) -> Result<(PathBuf, PathBuf), FloraError> {
-        let wine_dir = self.get_wine_dir();
-        let wine_prefix = self.get_wine_prefix();
-
-        self.ensure_wine_dir(&wine_dir)?;
-        self.ensure_wine_prefix(&wine_prefix)?;
-
-        Ok((wine_dir, wine_prefix))
+        Ok((self.runtime.clone(), self.prefix.clone()))
     }
     fn generate_command(&self, args: &[&str]) -> Result<Command, FloraError> {
         let (wine_runtime, wine_prefix) = self.gather_command_info()?;
@@ -249,9 +231,8 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
     }
 
     fn create_desktop_entry(&self, app: &FloraSeedApp) -> Result<(), FloraError> {
-        let wine_prefix = self.get_wine_prefix();
         // Get link path
-        let target_linux_path = winepath::windows_to_unix(&wine_prefix, &app.application_location);
+        let target_linux_path = winepath::windows_to_unix(&self.prefix, &app.application_location);
 
         let exe_find = flora_icon::find_lnk_exe_location(&target_linux_path)?;
 
@@ -262,7 +243,7 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             // Not an EXE or LNK, use other icon
             icon_name = flora_icon::get_icon_name_from_path(&location)?;
         } else if let FloraLink::WindowsIco(ico_path) = exe_find {
-            let windows_ico_path = winepath::windows_to_unix(&wine_prefix, &ico_path);
+            let windows_ico_path = winepath::windows_to_unix(&self.prefix, &ico_path);
             debug!("We got icon from {}", &windows_ico_path.to_string_lossy());
 
             flora_icon::extract_icon_from_ico(&icon_path, &PathBuf::from(&windows_ico_path))?;
@@ -271,7 +252,7 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             debug!("No icon location, search exe for icons");
             let exe_location = match exe_find {
                 FloraLink::LinuxExe(path) => path,
-                FloraLink::WindowsExe(path) => winepath::windows_to_unix(&wine_prefix, &path),
+                FloraLink::WindowsExe(path) => winepath::windows_to_unix(&self.prefix, &path),
                 _ => panic!("Windows ICO should be handled in the former case!"),
             };
 
@@ -315,8 +296,6 @@ Terminal=false",
     }
 
     fn get_start_menu_entry_location(&self, menu_name: &str) -> Result<String, FloraError> {
-        let wine_prefix = self.get_wine_prefix();
-
         for start_menu_dir in [self.get_start_menu_dir(), self.get_system_start_menu_dir()] {
             for entry in WalkDir::new(start_menu_dir)
                 .into_iter()
@@ -328,7 +307,7 @@ Terminal=false",
                     debug!("Found Start Menu item: {}", entry.path().display());
                     let path = String::from(entry.path().to_string_lossy());
 
-                    let winepath = winepath::unix_to_windows(&wine_prefix, &PathBuf::from(path));
+                    let winepath = winepath::unix_to_windows(&self.prefix, &PathBuf::from(path));
 
                     debug!("Winepath: {}", winepath);
                     return Ok(winepath);
@@ -340,7 +319,6 @@ Terminal=false",
     }
 
     fn list_start_menu_entries(&self) -> Result<Vec<FloraSeedStartMenuItem>, FloraError> {
-        let wine_prefix = self.get_wine_prefix();
         let mut start_menu_entries = Vec::new();
 
         for start_menu_dir in [self.get_start_menu_dir(), self.get_system_start_menu_dir()] {
@@ -356,7 +334,7 @@ Terminal=false",
 
                     start_menu_entries.push(FloraSeedStartMenuItem {
                         start_menu_name: String::from(file_stem.to_string_lossy()),
-                        start_menu_location: winepath::unix_to_windows(&wine_prefix, entry.path()),
+                        start_menu_location: winepath::unix_to_windows(&self.prefix, entry.path()),
                     });
                 }
             }

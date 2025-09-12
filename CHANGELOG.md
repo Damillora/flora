@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Add
 - Ability to generate menus for individual app entries
+- Ability to use local `umu-run`
 
 ### Fixed
 - Errors while generating menus if required directories does not exist by creating the required directories first

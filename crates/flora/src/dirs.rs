@@ -34,6 +34,12 @@ impl FloraDirs {
 
         wine_root
     }
+    pub fn get_umu_root(&self) -> PathBuf {
+        let mut wine_root = self.flora_root.clone();
+        wine_root.push("umu");
+
+        wine_root
+    }
     pub fn get_proton_root_steam(&self) -> PathBuf {
         self.steam_compat_dir.clone()
     }
