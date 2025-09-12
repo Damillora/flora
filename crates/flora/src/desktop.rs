@@ -5,6 +5,8 @@ use log::debug;
 use crate::{dirs::FloraDirs, errors::FloraError};
 
 pub(crate) fn initialize_desktop_entries(dirs: &FloraDirs) -> Result<(), FloraError> {
+    dirs.create_desktop_dirs()?;
+
     let flora_directory = "[Desktop Entry]
     Type=Directory
     Name=Flora

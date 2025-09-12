@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs::{self, File, create_dir},
     path::PathBuf,
 };
 
@@ -113,6 +113,14 @@ impl FloraDirs {
         fs::create_dir_all(self.get_log_root())?;
         fs::create_dir_all(self.get_prefixes_root())?;
         fs::create_dir_all(self.get_icons_root())?;
+
+        Ok(())
+    }
+
+    pub fn create_desktop_dirs(&self) -> Result<(), FloraError> {
+        fs::create_dir_all(&self.applications_directory_dir)?;
+        fs::create_dir_all(&self.applications_entry_dir)?;
+        fs::create_dir_all(&self.config_menu_dir)?;
 
         Ok(())
     }
