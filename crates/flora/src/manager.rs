@@ -8,6 +8,7 @@ use log::debug;
 
 use crate::{
     config::FloraConfig,
+    desktop,
     dirs::FloraDirs,
     errors::FloraError,
     requests::{FloraCreateSeed, FloraCreateSeedApp, FloraSeedAppOperations, FloraUpdateSeed},
@@ -123,7 +124,7 @@ impl FloraManager {
 
         let seed = self.read_seed(name)?;
 
-        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
         runner.list_start_menu_entries()
     }
 
@@ -135,7 +136,7 @@ impl FloraManager {
 
         let seed = self.read_seed(name)?;
 
-        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
         let start_menu_location = runner.get_start_menu_entry_location(menu_name)?;
         let update_seed_operation = vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
             application_name: menu_name,
@@ -204,7 +205,7 @@ impl FloraManager {
 
         let seed = self.read_seed(name)?;
 
-        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
         runner.run_config(args, quiet, wait)
     }
 
@@ -222,7 +223,7 @@ impl FloraManager {
 
         let seed = self.read_seed(name)?;
 
-        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
         runner.run_tricks(args, quiet, wait)
     }
 
@@ -251,7 +252,7 @@ impl FloraManager {
             // Determine arguments to be passed to runner
             let new_args = [&*app_entry.application_location];
 
-            let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+            let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
             runner.run_executable(&new_args, quiet, wait)
         } else {
             Err(FloraError::SeedNoApp)
@@ -275,26 +276,50 @@ impl FloraManager {
         // Determine arguments to be passed to runner
         let new_args = args;
 
-        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed);
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
         runner.run_executable(new_args, quiet, wait)
     }
 
     /// Creates a desktop entry for seed
-    pub fn create_desktop_entry(&self) -> Result<(), FloraError> {
+    pub fn create_desktop_entries(
+        &self,
+        seed_name: Option<&str>,
+        app_name: Option<&str>,
+    ) -> Result<(), FloraError> {
+        // Initialize menus
+        desktop::initialize_desktop_entries(&self.flora_dirs)?;
+
         let seed_dir = self.flora_dirs.get_seed_root();
 
-        let files = read_dir(&seed_dir)?;
-        for seed_config_path in files {
-            let path = seed_config_path?.path();
-            let file_stem = path.file_stem().ok_or(FloraError::SeedNotFound)?;
-            let name = file_stem.to_string_lossy();
+        let mut files = read_dir(&seed_dir)?
+            .map(|seed_config_path| {
+                let path = seed_config_path
+                    .map_err(|_| FloraError::SeedNotFound)?
+                    .path();
+                let file_stem = path.file_stem().ok_or(FloraError::SeedNotFound)?;
+                let name = file_stem.to_string_lossy();
+                let seed = self.read_seed(&name)?;
 
-            let seed = self.read_seed(&name)?;
+                Ok((String::from(name), seed))
+            })
+            .collect::<Result<Vec<_>, FloraError>>()?;
 
+        if let Some(seed_name) = seed_name {
+            files.retain(|(name, _)| name == seed_name);
+        }
+
+        for (name, seed) in files {
             debug!("Generating menu entries for seed {}", name);
 
-            let runner = runners::create_runner(&name, &self.flora_dirs, &self.config, &seed);
-            runner.create_desktop_entries()?;
+            let runner = runners::create_runner(&name, &self.flora_dirs, &self.config, &seed)?;
+            let mut apps: Vec<_> = seed.apps.iter().collect();
+            if let Some(app_name) = app_name {
+                apps.retain(|app| app.application_name == app_name);
+            }
+
+            for app in apps {
+                runner.create_desktop_entry(app)?;
+            }
         }
 
         Ok(())

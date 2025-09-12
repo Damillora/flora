@@ -6,10 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Add
+- Ability to generate menus for individual app entries
+
 ### Fixed
-- Create the required directories for desktop menu
+- Errors while generating menus if required directories does not exist by creating the required directories first
 
 ### Changed
+- BREAKING CHANGE: Move in `generate-menu` to an `app` subcommand, since it made more sense there
 - BREAKING CHANGE: Shorten app-related flags in `flora` CLI
   - `default-application-name` -> `app-name`
   - `application-name` -> `app_name`

@@ -64,13 +64,13 @@ Runtimes in those folder can be managed with tools like [ProtonUp-Qt](https://gi
     * `app update`: Update an app in a seed
     * `app rename`: Rename an app in a seed
     * `app delete`: Remove an app from a seed
+    * `app generate-menu`: Generate menu entries for launching apps from the application menu
 * `start-menu`: Query Start Menu entries in a seed and create app entries based on them
     * `start-menu list`: List all Start Menu entries in a seed
     * `start-menu create-app`: Generate an app based on a Start Menu entry
 * `config`: Launch the seed's prefix configuration, usually `winecfg`
 * `tricks`: Launch winetricks for the seed's prefix 
 * `run`: Run an application in a seed
-* `generate-menu`: Generate menu entries for launching apps from the application menu
 
 
 ## Configuration

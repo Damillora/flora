@@ -40,8 +40,6 @@ pub enum Commands {
     Tricks(RunOpts),
     /// Run an application in a seed
     Run(RunOpts),
-    /// Generate menu entries for launching apps from the application menu
-    GenerateMenu,
 }
 
 #[derive(Args)]
@@ -219,6 +217,8 @@ pub enum AppCommands {
     Rename(AppRenameOpts),
     /// Remove an app from a seed
     Delete(AppDeleteOpts),
+    /// Generate menu entries for launching apps from the application menu
+    GenerateMenu(AppGenerateMenuOpts),
 }
 #[derive(Args)]
 pub struct AppSeedOpts {
@@ -276,6 +276,14 @@ pub struct AppDeleteOpts {
 
     /// Name for the app
     app_name: String,
+}
+#[derive(Args)]
+pub struct AppGenerateMenuOpts {
+    /// Name of seed
+    seed_name: Option<String>,
+
+    /// Name for the app
+    app_name: Option<String>,
 }
 #[derive(Args)]
 pub struct StartMenuOpts {
@@ -569,6 +577,10 @@ fn main() -> Result<(), FloraError> {
                     application_name: app_delete_opts.app_name.as_str(),
                 })],
             ),
+            AppCommands::GenerateMenu(app_generate_menu_opts) => manager.create_desktop_entries(
+                app_generate_menu_opts.seed_name.as_deref(),
+                app_generate_menu_opts.app_name.as_deref(),
+            ),
         },
         Commands::StartMenu(opts) => match &opts.commands {
             StartMenuCommands::List(start_menu_list_opts) => {
@@ -633,6 +645,5 @@ fn main() -> Result<(), FloraError> {
                 None => manager.seed_run_app(&opts.name, &None, opts.quiet, opts.wait),
             }
         }
-        Commands::GenerateMenu => manager.create_desktop_entry(),
     }
 }

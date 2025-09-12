@@ -10,7 +10,6 @@ use walkdir::WalkDir;
 
 use crate::{
     config::FloraConfig,
-    desktop,
     dirs::FloraDirs,
     errors::FloraError,
     responses::FloraSeedStartMenuItem,
@@ -25,7 +24,6 @@ pub struct FloraProtonRunner<'a> {
     config: &'a FloraConfig,
     settings: &'a Option<Box<FloraSeedSettings>>,
     proton_seed: &'a FloraProtonSeed,
-    apps: &'a Vec<FloraSeedApp>,
 }
 
 impl<'a> FloraProtonRunner<'a> {
@@ -35,7 +33,6 @@ impl<'a> FloraProtonRunner<'a> {
         config: &'a FloraConfig,
         settings: &'a Option<Box<FloraSeedSettings>>,
         proton_seed: &'a FloraProtonSeed,
-        apps: &'a Vec<FloraSeedApp>,
     ) -> Self {
         Self {
             name,
@@ -43,7 +40,6 @@ impl<'a> FloraProtonRunner<'a> {
             config,
             settings,
             proton_seed,
-            apps,
         }
     }
 }
@@ -231,75 +227,70 @@ impl<'a> FloraRunner for FloraProtonRunner<'a> {
 
         Ok(())
     }
-
-    fn create_desktop_entries(&self) -> Result<(), FloraError> {
+    fn create_desktop_entry(&self, app: &FloraSeedApp) -> Result<(), FloraError> {
         let proton_prefix = self.get_proton_prefix();
-        // Initialize menus
-        desktop::initialize_desktop_entries(self.dirs)?;
 
-        for app in self.apps.iter() {
-            // Get link path
-            let target_linux_path =
-                winepath::windows_to_unix(&proton_prefix, &app.application_location);
+        // Get link path
+        let target_linux_path =
+            winepath::windows_to_unix(&proton_prefix, &app.application_location);
 
-            let exe_find = flora_icon::find_lnk_exe_location(&target_linux_path)?;
+        let exe_find = flora_icon::find_lnk_exe_location(&target_linux_path)?;
 
-            let icon_path = self.dirs.get_icon_file(self.name, &app.application_name);
-            let mut icon_name = String::from("applications-other");
+        let icon_path = self.dirs.get_icon_file(self.name, &app.application_name);
+        let mut icon_name = String::from("applications-other");
 
-            if let FloraLink::Other(location) = exe_find {
-                // Not an EXE or LNK, use other icon
-                icon_name = flora_icon::get_icon_name_from_path(&location)?;
-            } else if let FloraLink::WindowsIco(ico_path) = exe_find {
-                let windows_ico_path = winepath::windows_to_unix(&proton_prefix, &ico_path);
-                debug!("We got icon from {}", &windows_ico_path.to_string_lossy());
+        if let FloraLink::Other(location) = exe_find {
+            // Not an EXE or LNK, use other icon
+            icon_name = flora_icon::get_icon_name_from_path(&location)?;
+        } else if let FloraLink::WindowsIco(ico_path) = exe_find {
+            let windows_ico_path = winepath::windows_to_unix(&proton_prefix, &ico_path);
+            debug!("We got icon from {}", &windows_ico_path.to_string_lossy());
 
-                flora_icon::extract_icon_from_ico(&icon_path, &PathBuf::from(&windows_ico_path))?;
+            flora_icon::extract_icon_from_ico(&icon_path, &PathBuf::from(&windows_ico_path))?;
+            icon_name = String::from(icon_path.to_string_lossy())
+        } else {
+            debug!("No icon location, search exe for icons");
+            let exe_location = match exe_find {
+                FloraLink::LinuxExe(path) => path,
+                FloraLink::WindowsExe(path) => winepath::windows_to_unix(&proton_prefix, &path),
+                _ => panic!("Windows ICO should be handled in the former case!"),
+            };
+
+            if flora_icon::extract_icon_from_exe(&icon_path, &exe_location)? {
+                debug!("We got icon from {}", exe_location.to_string_lossy());
                 icon_name = String::from(icon_path.to_string_lossy())
-            } else {
-                debug!("No icon location, search exe for icons");
-                let exe_location = match exe_find {
-                    FloraLink::LinuxExe(path) => path,
-                    FloraLink::WindowsExe(path) => winepath::windows_to_unix(&proton_prefix, &path),
-                    _ => panic!("Windows ICO should be handled in the former case!"),
-                };
-
-                if flora_icon::extract_icon_from_exe(&icon_path, &exe_location)? {
-                    debug!("We got icon from {}", exe_location.to_string_lossy());
-                    icon_name = String::from(icon_path.to_string_lossy())
-                };
-            }
-
-            // Create desktop entry files
-            let desktop_entry = format!(
-                "[Desktop Entry]
-Type=Application
-Categories=X-Flora
-Name={}
-Icon={}
-Exec=flora run -a -w {} \"{}\"
-Comment=Run {} with Flora (Proton seed {})
-Terminal=false",
-                app.application_name,
-                icon_name,
-                self.name,
-                app.application_name,
-                app.application_name,
-                self.name
-            );
-
-            let desktop_entry_location = self
-                .dirs
-                .get_desktop_entry_file(self.name, &app.application_name);
-
-            debug!(
-                "Writing {} desktop entry to {}",
-                self.name,
-                desktop_entry_location.to_string_lossy()
-            );
-
-            fs::write(desktop_entry_location, desktop_entry)?;
+            };
         }
+
+        // Create desktop entry files
+        let desktop_entry = format!(
+            "[Desktop Entry]
+            Type=Application
+            Categories=X-Flora
+            Name={}
+            Icon={}
+            Exec=flora run -a -w {} \"{}\"
+            Comment=Run {} with Flora (Proton seed {})
+        Terminal=false",
+            app.application_name,
+            icon_name,
+            self.name,
+            app.application_name,
+            app.application_name,
+            self.name
+        );
+
+        let desktop_entry_location = self
+            .dirs
+            .get_desktop_entry_file(self.name, &app.application_name);
+
+        debug!(
+            "Writing {} desktop entry to {}",
+            self.name,
+            desktop_entry_location.to_string_lossy()
+        );
+
+        fs::write(desktop_entry_location, desktop_entry)?;
 
         Ok(())
     }
