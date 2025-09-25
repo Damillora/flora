@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    env, fs,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -37,6 +37,14 @@ fn find_proton_tool(dirs: &FloraDirs, name: &String) -> Result<PathBuf, FloraErr
     // Local Steam Proton path
     let mut steam_proton_path = dirs.get_proton_root_steam();
     steam_proton_path.push(name);
+    let mut flatpak_steam_proton_path = PathBuf::new();
+
+    if let Some(home_path) = env::home_dir() {
+        flatpak_steam_proton_path = home_path.clone();
+        flatpak_steam_proton_path
+            .push(".var/app/com.valvesoftware.Steam/.steam/root/compatibilitytools.d");
+        flatpak_steam_proton_path.push(name);
+    }
 
     // System Steam Proton Path
     let mut steam_proton_path_system = PathBuf::from("/usr/share/steam/compatibilitytools.d");
@@ -45,6 +53,8 @@ fn find_proton_tool(dirs: &FloraDirs, name: &String) -> Result<PathBuf, FloraErr
     if fs::exists(&flora_proton_path)? {
         Ok(flora_proton_path)
     } else if fs::exists(&steam_proton_path)? {
+        Ok(steam_proton_path)
+    } else if fs::exists(&flatpak_steam_proton_path)? {
         Ok(steam_proton_path)
     } else if fs::exists(&steam_proton_path_system)? {
         Ok(steam_proton_path_system)
