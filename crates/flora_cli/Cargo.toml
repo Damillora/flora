@@ -16,7 +16,7 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4.5.47", features = ["derive"] }
 env_logger = "0.11.8"
-flora = { version = "0.1.0", path = "../flora" }
+flora = { version = "0.2.0", path = "../flora" }
 log = "0.4.28"
 serde = { version = "1.0.219", features = ["derive"] }
 tabled = "0.20.0"
