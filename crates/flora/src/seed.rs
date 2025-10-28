@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +38,7 @@ pub(crate) struct FloraProtonSeed {
 pub(crate) struct FloraSeed {
     pub settings: Option<Box<FloraSeedSettings>>,
     pub apps: Vec<FloraSeedApp>,
+    pub env: Option<BTreeMap<String, String>>,
 
     #[serde(flatten)]
     pub seed_type: FloraSeedType,
@@ -194,6 +198,7 @@ impl FloraSeed {
                             }
                             None => vec![],
                         },
+                        env: None,
 
                         seed_type: FloraSeedType::Wine(FloraWineSeed {
                             wine_prefix: {
@@ -246,6 +251,7 @@ impl FloraSeed {
                             }
                             None => vec![],
                         },
+                        env: None,
 
                         seed_type: FloraSeedType::Proton(FloraProtonSeed {
                             proton_prefix: match opts.proton_prefix.to_owned() {

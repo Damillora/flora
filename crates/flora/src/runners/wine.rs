@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     fs,
     path::PathBuf,
     process::{Command, Stdio},
@@ -22,6 +23,7 @@ pub struct FloraWineRunner<'a> {
     name: &'a str,
     dirs: &'a FloraDirs,
     settings: &'a Option<Box<FloraSeedSettings>>,
+    env: &'a Option<BTreeMap<String, String>>,
 
     prefix: PathBuf,
     runtime: PathBuf,
@@ -33,6 +35,7 @@ impl<'a> FloraWineRunner<'a> {
         dirs: &'a FloraDirs,
         config: &'a FloraConfig,
         settings: &'a Option<Box<FloraSeedSettings>>,
+        env: &'a Option<BTreeMap<String, String>>,
         wine_seed: &'a FloraWineSeed,
     ) -> Result<Self, FloraError> {
         let wine_prefix = if let Some(path) = &wine_seed.wine_prefix {
@@ -87,6 +90,7 @@ impl<'a> FloraWineRunner<'a> {
             name,
             dirs,
             settings,
+            env,
 
             prefix: wine_prefix,
             runtime: wine_runtime,
@@ -143,6 +147,11 @@ impl<'a> FloraWineRunner<'a> {
             Command::new(&wine_exe)
         };
 
+        if let Some(envs) = self.env {
+            for (env_name, env_val) in envs {
+                command.env(env_name, env_val);
+            }
+        }
         command.env("WINEPREFIX", wine_prefix).args(args);
 
         debug!(
@@ -191,6 +200,11 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
 
         use std::process::Command;
         let mut command = Command::new("winetricks");
+        if let Some(envs) = self.env {
+            for (env_name, env_val) in envs {
+                command.env(env_name, env_val);
+            }
+        }
         command
             .env("WINEPREFIX", wine_prefix)
             .env("WINE", wine_exe)

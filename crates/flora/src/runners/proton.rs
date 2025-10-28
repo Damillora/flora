@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     env, fs,
     path::PathBuf,
     process::{Command, Stdio},
@@ -22,6 +23,7 @@ pub struct FloraProtonRunner<'a> {
     name: &'a str,
     dirs: &'a FloraDirs,
     settings: &'a Option<Box<FloraSeedSettings>>,
+    env: &'a Option<BTreeMap<String, String>>,
     proton_seed: &'a FloraProtonSeed,
 
     prefix: PathBuf,
@@ -68,6 +70,7 @@ impl<'a> FloraProtonRunner<'a> {
         dirs: &'a FloraDirs,
         config: &'a FloraConfig,
         settings: &'a Option<Box<FloraSeedSettings>>,
+        env: &'a Option<BTreeMap<String, String>>,
         proton_seed: &'a FloraProtonSeed,
     ) -> Result<Self, FloraError> {
         let proton_prefix = if let Some(path) = &proton_seed.proton_prefix {
@@ -128,6 +131,7 @@ impl<'a> FloraProtonRunner<'a> {
             dirs,
             settings,
             proton_seed,
+            env,
 
             prefix: proton_prefix,
             runtime: proton_runtime,
@@ -174,6 +178,12 @@ impl<'a> FloraProtonRunner<'a> {
         } else {
             Command::new(&self.umu)
         };
+
+        if let Some(envs) = self.env {
+            for (env_name, env_val) in envs {
+                command.env(env_name, env_val);
+            }
+        }
         command
             .env("WINEPREFIX", proton_prefix)
             .env("PROTONPATH", proton_tool)
