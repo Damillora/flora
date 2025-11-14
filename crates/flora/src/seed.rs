@@ -53,12 +53,14 @@ pub(crate) struct FloraSeedSettings {
 pub(crate) struct FloraSeedApp {
     pub application_name: String,
     pub application_location: String,
+    pub category: Option<String>,
 }
 impl<'a> From<&FloraCreateSeedApp<'a>> for FloraSeedApp {
     fn from(value: &FloraCreateSeedApp) -> Self {
         Self {
             application_name: String::from(value.application_name),
             application_location: String::from(value.application_location),
+            category: value.category.map(String::from),
         }
     }
 }
@@ -131,6 +133,10 @@ impl FloraSeed {
                         if let Some(app_location) = flora_update_seed_app.application_location {
                             app.application_location = String::from(app_location);
                         }
+
+                        if let Some(app_category) = flora_update_seed_app.category {
+                            app.category = Some(String::from(app_category));
+                        }
                     } else {
                         return Err(FloraError::SeedNoApp);
                     }
@@ -194,6 +200,7 @@ impl FloraSeed {
                                     application_location: default_application
                                         .application_location
                                         .to_owned(),
+                                    category: default_application.category.map(String::from),
                                 }]
                             }
                             None => vec![],
@@ -247,6 +254,7 @@ impl FloraSeed {
                                     application_location: default_application
                                         .application_location
                                         .to_owned(),
+                                    category: default_application.category.map(String::from),
                                 }]
                             }
                             None => vec![],

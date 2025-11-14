@@ -57,7 +57,7 @@ fn find_proton_tool(dirs: &FloraDirs, name: &String) -> Result<PathBuf, FloraErr
     } else if fs::exists(&steam_proton_path)? {
         Ok(steam_proton_path)
     } else if fs::exists(&flatpak_steam_proton_path)? {
-        Ok(steam_proton_path)
+        Ok(flatpak_steam_proton_path)
     } else if fs::exists(&steam_proton_path_system)? {
         Ok(steam_proton_path_system)
     } else {
@@ -90,11 +90,11 @@ impl<'a> FloraProtonRunner<'a> {
         let proton_runtime = if let Some(runner) = &proton_seed.proton_runtime {
             // Proton runtime is defined in seed.
             // Use Proton runtime defined in seed.
-            find_proton_tool(&dirs, &runner)?
+            find_proton_tool(dirs, runner)?
         } else if let Some(proton_config) = &config.proton {
             // Proton runtime is not defined in seed, but defined globally.
             // Use Proton runtime defined in global configuration.
-            find_proton_tool(&dirs, &proton_config.default_proton_runtime)?
+            find_proton_tool(dirs, &proton_config.default_proton_runtime)?
         } else {
             // Proton runtime is not defined in seed nor global.
             // Define an empty runtime, and let umu-launcher decide.
@@ -284,12 +284,13 @@ impl<'a> FloraRunner for FloraProtonRunner<'a> {
         let desktop_entry = format!(
             "[Desktop Entry]
 Type=Application
-Categories=X-Flora
+Categories={}
 Name={}
 Icon={}
 Exec=flora run -a -w {} \"{}\"
 Comment=Run {} with Flora (Proton seed {})
 Terminal=false",
+            app.category.clone().unwrap_or(String::from("X-Flora")),
             app.application_name,
             icon_name,
             self.name,

@@ -141,6 +141,7 @@ impl FloraManager {
         let update_seed_operation = vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
             application_name: menu_name,
             application_location: start_menu_location.as_str(),
+            category: None,
         })];
 
         self.update_seed_apps(name, &update_seed_operation)

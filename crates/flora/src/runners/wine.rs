@@ -280,12 +280,13 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
         let desktop_entry = format!(
             "[Desktop Entry]
 Type=Application
-Categories=X-Flora
+Categories={}
 Name={}
 Icon={}
 Exec=flora run -a -w {} \"{}\"
 Comment=Run {} with Flora (Wine seed {})
 Terminal=false",
+            app.category.clone().unwrap_or(String::from("X-Flora")),
             app.application_name,
             icon_name,
             self.name,

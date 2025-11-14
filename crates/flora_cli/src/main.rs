@@ -93,6 +93,9 @@ pub struct CreateSeedDefaultOpts {
     /// Default executable location for the seed, passed to wine or proton.
     #[arg(short = 'l', long, required = false)]
     app_location: String,
+    /// Default executable category for the seed
+    #[arg(short = 'c', long, required = false)]
+    app_category: Option<String>,
 }
 #[derive(Args)]
 pub struct CreateWineOpts {
@@ -245,6 +248,9 @@ pub struct AppAddOpts {
     /// Location for the app, passed to wine or proton.
     #[arg(short = 'l', long)]
     app_location: String,
+    /// App category
+    #[arg(short = 'c', long)]
+    app_category: Option<String>,
 }
 
 #[derive(Args)]
@@ -257,6 +263,9 @@ pub struct AppUpdateOpts {
     /// Location for the app, passed to wine or proton.
     #[arg(short = 'l', long)]
     app_location: Option<String>,
+    /// App category
+    #[arg(short = 'c', long)]
+    app_category: Option<String>,
 }
 #[derive(Args)]
 pub struct AppRenameOpts {
@@ -409,6 +418,7 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
             .map(|default_opt| FloraCreateSeedApp {
                 application_name: default_opt.app_name.as_str(),
                 application_location: default_opt.app_location.as_str(),
+                category: default_opt.app_category.as_deref(),
             }),
 
         wine_prefix: args.wine_prefix.as_deref(),
@@ -429,6 +439,7 @@ fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result
             .map(|default_opt| FloraCreateSeedApp {
                 application_name: default_opt.app_name.as_str(),
                 application_location: default_opt.app_location.as_str(),
+                category: default_opt.app_category.as_deref(),
             }),
 
         proton_prefix: args.proton_prefix.as_deref(),
@@ -555,6 +566,7 @@ fn main() -> Result<(), FloraError> {
                 &vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
                     application_name: app_add_opts.app_name.as_str(),
                     application_location: app_add_opts.app_location.as_str(),
+                    category: app_add_opts.app_category.as_deref(),
                 })],
             ),
             AppCommands::Update(app_update_opts) => manager.update_seed_apps(
@@ -562,6 +574,7 @@ fn main() -> Result<(), FloraError> {
                 &vec![FloraSeedAppOperations::Update(FloraUpdateSeedApp {
                     application_name: app_update_opts.app_name.as_str(),
                     application_location: app_update_opts.app_location.as_deref(),
+                    category: app_update_opts.app_category.as_deref(),
                 })],
             ),
             AppCommands::Rename(app_rename_opts) => manager.update_seed_apps(

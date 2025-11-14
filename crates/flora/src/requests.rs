@@ -14,10 +14,12 @@ pub enum FloraSeedAppOperations<'a> {
 pub struct FloraCreateSeedApp<'a> {
     pub application_name: &'a str,
     pub application_location: &'a str,
+    pub category: Option<&'a str>,
 }
 pub struct FloraUpdateSeedApp<'a> {
     pub application_name: &'a str,
     pub application_location: Option<&'a str>,
+    pub category: Option<&'a str>,
 }
 pub struct FloraRenameSeedApp<'a> {
     pub old_application_name: &'a str,

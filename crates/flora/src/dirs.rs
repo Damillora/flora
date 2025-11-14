@@ -89,19 +89,6 @@ impl FloraDirs {
 
         desktop_entry_location
     }
-    pub fn get_desktop_directory_file(&self) -> PathBuf {
-        let mut desktop_entry_location = self.applications_directory_dir.clone();
-        desktop_entry_location.push("flora.directory");
-
-        desktop_entry_location
-    }
-
-    pub fn get_desktop_menu_file(&self) -> PathBuf {
-        let mut desktop_entry_location = self.config_menu_dir.clone();
-        desktop_entry_location.push("flora.menu");
-
-        desktop_entry_location
-    }
 
     pub fn get_icon_file(&self, name: &str, app_name: &str) -> PathBuf {
         let mut icon_path = self.get_icons_root();
