@@ -20,4 +20,4 @@ flora = { version = "0.2.0", path = "../flora" }
 log = "0.4.28"
 serde = { version = "1.0.228", features = ["derive"] }
 tabled = "0.20.0"
-toml = { version = "0.9.5", features = ["serde"] }
+toml = { version = "0.9.11", features = ["serde"] }
