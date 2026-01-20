@@ -1,6 +1,7 @@
 name: Nightly build
 
 on:
+  pull_request:
   push:
     branches: [ "main" ]
 
