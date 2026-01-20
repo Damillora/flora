@@ -101,8 +101,10 @@ impl<'a> FloraWineRunner<'a> {
 impl<'a> FloraWineRunner<'a> {
     fn get_start_menu_dir(&self) -> PathBuf {
         let mut wine_prefix = self.prefix.clone();
+        let username = whoami::username().unwrap_or(String::from("steamuser"));
+
         wine_prefix.push("drive_c/users");
-        wine_prefix.push(whoami::username());
+        wine_prefix.push(username);
         wine_prefix.push("AppData/Roaming/Microsoft/Windows/Start Menu");
 
         wine_prefix
