@@ -11,7 +11,7 @@ license.workspace = true
 
 [dependencies]
 directories = "6.0.0"
-log = "0.4.28"
+log = "0.4.29"
 serde = { version = "1.0.228", features = ["derive"] }
 toml = { version = "0.9.11", features = ["serde"] }
 whoami = "2.0.2"
