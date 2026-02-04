@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Make desktop entry category a configurable option
+- Show app category when listing apps 
+- Make default proton runtime config option not mandatory
 
 ## [0.2.0] - 2025-09-27
 

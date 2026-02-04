@@ -25,7 +25,7 @@ pub struct FloraProtonConfig {
 
     pub default_proton_prefix: String,
 
-    pub default_proton_runtime: String,
+    pub default_proton_runtime: Option<String>,
 }
 
 impl FloraConfig {
@@ -62,7 +62,7 @@ impl FloraConfig {
 
                     String::from(prefixes_dir.to_string_lossy())
                 },
-                default_proton_runtime: String::from(""),
+                default_proton_runtime: None,
             }),
         };
 

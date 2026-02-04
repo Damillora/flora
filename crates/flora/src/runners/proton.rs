@@ -91,10 +91,12 @@ impl<'a> FloraProtonRunner<'a> {
             // Proton runtime is defined in seed.
             // Use Proton runtime defined in seed.
             find_proton_tool(dirs, runner)?
-        } else if let Some(proton_config) = &config.proton {
+        } else if let Some(proton_config) = &config.proton
+            && let Some(default_proton_runtime) = &proton_config.default_proton_runtime
+        {
             // Proton runtime is not defined in seed, but defined globally.
             // Use Proton runtime defined in global configuration.
-            find_proton_tool(dirs, &proton_config.default_proton_runtime)?
+            find_proton_tool(dirs, &default_proton_runtime)?
         } else {
             // Proton runtime is not defined in seed nor global.
             // Define an empty runtime, and let umu-launcher decide.
