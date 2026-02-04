@@ -26,6 +26,7 @@ pub struct FloraProtonSeedItem {
 pub struct FloraSeedAppItem {
     pub application_name: String,
     pub application_location: String,
+    pub category: Option<String>,
 }
 
 pub struct FloraSeedStartMenuItem {
@@ -44,6 +45,7 @@ impl FloraSeedItem {
                 .map(|item| FloraSeedAppItem {
                     application_name: item.application_name.clone(),
                     application_location: item.application_location.clone(),
+                    category: item.category.clone(),
                 })
                 .collect(),
             seed_type: match &config.seed_type {

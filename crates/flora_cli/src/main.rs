@@ -361,6 +361,7 @@ pub struct SeedTableRow<'a> {
 pub struct SeedAppTableRow<'a> {
     pub application_name: &'a str,
     pub application_location: &'a str,
+    pub category: &'a str,
 }
 
 #[derive(Tabled)]
@@ -395,6 +396,7 @@ impl<'a> From<&'a FloraSeedAppItem> for SeedAppTableRow<'a> {
         Self {
             application_name: item.application_name.as_str(),
             application_location: item.application_location.as_str(),
+            category: &item.category.as_deref().unwrap_or("Other"),
         }
     }
 }
