@@ -9,14 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Set environment variables in a seed (seed toml files only for now)
+- Set environment variables in a seed (seed toml and command line)
+- Show environment variable information to seed information
 
 ### Changed
 
 - Make desktop entry category a configurable option
 - Show app category when listing apps
 - Make default proton runtime config option not mandatory
-- Add environment variable information to seed information
 
 ## [0.2.0] - 2025-09-27
 

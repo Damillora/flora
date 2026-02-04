@@ -60,6 +60,8 @@ pub enum SeedCommands {
     Delete(DeleteOpts),
     /// Show a seed's information
     Info(InfoOpts),
+    /// Manage a seed's environment
+    Env(EnvOpts),
 }
 
 #[derive(Args)]
@@ -200,6 +202,51 @@ pub struct ListOpts {
 pub struct InfoOpts {
     /// Name of seed
     name: String,
+}
+#[derive(Args)]
+pub struct EnvOpts {
+    #[command(subcommand)]
+    commands: SeedEnvCommands,
+}
+
+#[derive(Subcommand)]
+pub enum SeedEnvCommands {
+    /// List environment variables in a seed
+    List(SeedListOpts),
+    /// Set an environment variable in a seed
+    Set(SeedEnvSetOpts),
+    /// Delete an environment variable from a seed
+    Delete(SeedEnvDeleteOpts),
+}
+
+#[derive(Args)]
+pub struct SeedListOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Long format
+    #[arg(short = 'l', long)]
+    long: bool,
+}
+
+#[derive(Args)]
+pub struct SeedEnvSetOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Name of environment variable
+    env_name: String,
+    /// Value of environment variable
+    env_value: String,
+}
+
+#[derive(Args)]
+pub struct SeedEnvDeleteOpts {
+    #[clap(flatten)]
+    seed: AppSeedOpts,
+
+    /// Name of environment variable
+    env_name: String,
 }
 
 #[derive(Args)]
@@ -573,6 +620,46 @@ fn main() -> Result<(), FloraError> {
 
                 Ok(())
             }
+            SeedCommands::Env(env_opts) => match &env_opts.commands {
+                SeedEnvCommands::List(seed_env_list_opts) => {
+                    let seed = manager.show_seed(&seed_env_list_opts.seed.name)?;
+                    if let None = seed.env {
+                        println!("  No environment variables defined");
+                    } else if let Some(env) = seed.env {
+                        if env.len() == 0 {
+                            println!("  No environment variables defined");
+                        } else {
+                            if seed_env_list_opts.long {
+                                let env_items = env.iter().map(SeedEnvTableRow::from);
+
+                                let mut table = Table::new(env_items);
+                                table.with(Style::blank());
+                                table.with(Colorization::exact(
+                                    [Color::FG_BRIGHT_BLUE],
+                                    Rows::first(),
+                                ));
+                                table.modify(Columns::first(), Alignment::left());
+                                println!("{}", table);
+                            } else {
+                                for seed_env in env {
+                                    println!("{} = {}", seed_env.0, seed_env.1);
+                                }
+                            }
+                        }
+                    }
+
+                    Ok(())
+                }
+                SeedEnvCommands::Set(seed_env_set_opts) => manager.update_seed_env(
+                    &seed_env_set_opts.seed.name,
+                    &seed_env_set_opts.env_name,
+                    &seed_env_set_opts.env_value,
+                ),
+                SeedEnvCommands::Delete(seed_env_delete_opts) => manager.delete_seed_env(
+                    &seed_env_delete_opts.seed.name,
+                    &seed_env_delete_opts.env_name,
+                ),
+            },
         },
         Commands::App(app_opts) => match &app_opts.commands {
             AppCommands::List(app_list_opts) => {

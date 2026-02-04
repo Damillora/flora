@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     fs::{self, read_dir},
     path::PathBuf,
 };
@@ -88,6 +89,61 @@ impl FloraManager {
         let mut seed_config = self.read_seed(name)?;
         seed_config.merge_options(upd_data)?;
 
+        self.write_seed_config(name, &seed_config)?;
+
+        Ok(())
+    }
+    /// Edit seed env
+    pub fn update_seed_env(
+        &self,
+        name: &str,
+        env_name: &str,
+        env_value: &str,
+    ) -> Result<(), FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
+        }
+
+        let seed_location = self.seed_path(name);
+
+        debug!(
+            "Setting env variable {} at {}",
+            &env_name,
+            &seed_location.to_string_lossy()
+        );
+        let mut seed_config = self.read_seed(name)?;
+
+        // Edit environment
+        let mut seed_env = seed_config.env.unwrap_or(BTreeMap::new());
+        seed_env.insert(String::from(env_name), String::from(env_value));
+
+        // Move back edited env
+        seed_config.env = Some(seed_env);
+        self.write_seed_config(name, &seed_config)?;
+
+        Ok(())
+    }
+    /// Edit seed env
+    pub fn delete_seed_env(&self, name: &str, env_name: &str) -> Result<(), FloraError> {
+        if !self.is_seed_exists(name)? {
+            return Err(FloraError::SeedNotFound);
+        }
+
+        let seed_location = self.seed_path(name);
+
+        debug!(
+            "Deleting env variable {} at {}",
+            &env_name,
+            &seed_location.to_string_lossy()
+        );
+        let mut seed_config = self.read_seed(name)?;
+
+        // Edit environment
+        let mut seed_env = seed_config.env.unwrap_or(BTreeMap::new());
+        seed_env.remove(env_name);
+
+        // Move back edited env
+        seed_config.env = Some(seed_env);
         self.write_seed_config(name, &seed_config)?;
 
         Ok(())
