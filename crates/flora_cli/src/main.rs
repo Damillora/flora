@@ -371,6 +371,13 @@ pub struct SeedStartMenuTableRow<'a> {
     pub location: &'a str,
 }
 
+#[derive(Tabled)]
+#[tabled(rename_all = "Upper Title Case")]
+pub struct SeedEnvTableRow<'a> {
+    pub name: &'a str,
+    pub value: &'a str,
+}
+
 impl<'a> From<&'a FloraSeedItem> for SeedTableRow<'a> {
     fn from(item: &'a FloraSeedItem) -> Self {
         match &item.seed_type {
@@ -405,6 +412,15 @@ impl<'a> From<&'a FloraSeedStartMenuItem> for SeedStartMenuTableRow<'a> {
         Self {
             name: item.start_menu_name.as_str(),
             location: item.start_menu_location.as_str(),
+        }
+    }
+}
+
+impl<'a> From<(&'a String, &'a String)> for SeedEnvTableRow<'a> {
+    fn from(item: (&'a String, &'a String)) -> Self {
+        Self {
+            name: item.0,
+            value: item.1,
         }
     }
 }
@@ -517,8 +533,10 @@ fn main() -> Result<(), FloraError> {
             }
             SeedCommands::Info(args) => {
                 let seed = manager.show_seed(&args.name)?;
-                let seed_table = SeedTableRow::from(&seed);
-
+                let mut seed_table = SeedTableRow::from(&seed);
+                if seed_table.runtime.is_empty() {
+                    seed_table.runtime = "(default runtime)";
+                }
                 let mut table = Table::kv(vec![seed_table]);
                 table.with(Style::blank());
                 table.with(Colorization::exact(
@@ -528,18 +546,30 @@ fn main() -> Result<(), FloraError> {
                 table.modify(Columns::first(), Alignment::left());
 
                 println!("{}", table);
-                println!("List of apps:");
-                for app in seed.apps {
-                    let app_table = SeedAppTableRow::from(&app);
-                    let mut table = Table::kv(vec![app_table]);
-                    table.with(Style::blank());
-                    table.with(Colorization::exact(
-                        [Color::FG_BRIGHT_BLUE],
-                        Columns::first(),
-                    ));
-                    table.modify(Columns::first(), Alignment::left());
-                    println!("{}", table);
+                println!("Environnment variables:");
+                if let None = seed.env {
+                    println!("  No environment variables defined");
+                } else if let Some(env) = seed.env {
+                    if env.len() == 0 {
+                        println!("  No environment variables defined");
+                    } else {
+                        let env_items = env.iter().map(SeedEnvTableRow::from);
+
+                        let mut table = Table::new(env_items);
+                        table.with(Style::blank());
+                        table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
+                        table.modify(Columns::first(), Alignment::left());
+                        println!("{}", table);
+                    }
                 }
+                println!("List of apps:");
+                let table_items = seed.apps.iter().map(SeedAppTableRow::from);
+
+                let mut table = Table::new(table_items);
+                table.with(Style::blank());
+                table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
+                table.modify(Columns::first(), Alignment::left());
+                println!("{}", table);
 
                 Ok(())
             }

@@ -1,8 +1,11 @@
+use std::collections::BTreeMap;
+
 use crate::seed::FloraSeed;
 
 pub struct FloraSeedItem {
     pub name: String,
     pub apps: Vec<FloraSeedAppItem>,
+    pub env: Option<BTreeMap<String, String>>,
     pub seed_type: FloraSeedTypeItem,
 }
 
@@ -48,6 +51,7 @@ impl FloraSeedItem {
                     category: item.category.clone(),
                 })
                 .collect(),
+            env: config.env.clone(),
             seed_type: match &config.seed_type {
                 crate::seed::FloraSeedType::Wine(flora_wine_seed) => {
                     FloraSeedTypeItem::Wine(FloraWineSeedItem {
