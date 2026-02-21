@@ -14,7 +14,7 @@ name = "flora"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.5.54", features = ["derive"] }
+clap = { version = "4.5.57", features = ["derive"] }
 env_logger = "0.11.8"
 flora = { version = "0.3.0", path = "../flora" }
 log = "0.4.28"
