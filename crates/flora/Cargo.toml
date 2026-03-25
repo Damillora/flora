@@ -13,7 +13,7 @@ license.workspace = true
 directories = "6.0.0"
 log = "0.4.29"
 serde = { version = "1.0.228", features = ["derive"] }
-toml = { version = "1.0.6", features = ["serde"] }
+toml = { version = "1.0.7", features = ["serde"] }
 whoami = "2.1.1"
 walkdir = "2"
 flora_icon = { version = "0.3.0", path = "../flora_icon" }
