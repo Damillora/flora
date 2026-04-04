@@ -583,9 +583,9 @@ dependencies = [
 
 [[package]]
 name = "lnk"
-version = "0.6.3"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31e8628ddc5b5ce2b0411d8f389886d3bb265f91f9413662fa81fdd108a9ae33"
+checksum = "49f0079e22c0db6cb050d4be94c778d50207cd919ddf99a99d85390b5db33908"
 dependencies = [
  "binrw",
  "bitflags 2.9.4",
