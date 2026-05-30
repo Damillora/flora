@@ -13,6 +13,6 @@ license.workspace = true
 ico = "0.5.0"
 infer = "0.19.0"
 lnk = "0.6.4"
-log = "0.4.29"
+log = "0.4.30"
 pelite = "0.10.0"
 xdg-mime = "0.4.0"
