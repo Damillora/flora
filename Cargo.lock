@@ -380,7 +380,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "flora"
+name = "flora_cli"
+version = "0.3.0"
+dependencies = [
+ "clap",
+ "env_logger",
+ "flora_core",
+ "log",
+ "serde",
+ "tabled",
+ "toml",
+]
+
+[[package]]
+name = "flora_core"
 version = "0.3.0"
 dependencies = [
  "directories",
@@ -392,19 +405,6 @@ dependencies = [
  "typed-path",
  "walkdir",
  "whoami",
-]
-
-[[package]]
-name = "flora_cli"
-version = "0.3.0"
-dependencies = [
- "clap",
- "env_logger",
- "flora",
- "log",
- "serde",
- "tabled",
- "toml",
 ]
 
 [[package]]

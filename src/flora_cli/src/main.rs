@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use flora::{
+use flora_core::{
     errors::FloraError,
     manager::FloraManager,
     requests::{
@@ -10,12 +10,12 @@ use flora::{
     responses::{FloraSeedAppItem, FloraSeedItem, FloraSeedStartMenuItem},
 };
 use tabled::{
-    Table, Tabled,
     settings::{
-        Alignment, Color, Style,
         object::{Columns, Rows},
         themes::Colorization,
+        Alignment, Color, Style,
     },
+    Table, Tabled,
 };
 
 /// Manage your Wine and Proton prefixes
@@ -428,14 +428,14 @@ pub struct SeedEnvTableRow<'a> {
 impl<'a> From<&'a FloraSeedItem> for SeedTableRow<'a> {
     fn from(item: &'a FloraSeedItem) -> Self {
         match &item.seed_type {
-            flora::responses::FloraSeedTypeItem::Wine(conf) => Self {
+            flora_core::responses::FloraSeedTypeItem::Wine(conf) => Self {
                 name: item.name.as_str(),
                 prefix: conf.wine_prefix.as_deref().unwrap_or_default(),
                 runtime: conf.wine_runtime.as_deref().unwrap_or_default(),
                 game_id: "",
                 store: "",
             },
-            flora::responses::FloraSeedTypeItem::Proton(conf) => Self {
+            flora_core::responses::FloraSeedTypeItem::Proton(conf) => Self {
                 name: item.name.as_str(),
                 prefix: conf.proton_prefix.as_deref().unwrap_or_default(),
                 runtime: conf.proton_runtime.as_deref().unwrap_or_default(),
@@ -570,8 +570,8 @@ fn main() -> Result<(), FloraError> {
                             "{} ({})",
                             seed.name,
                             match seed.seed_type {
-                                flora::responses::FloraSeedTypeItem::Wine(_) => "Wine",
-                                flora::responses::FloraSeedTypeItem::Proton(_) => "Proton",
+                                flora_core::responses::FloraSeedTypeItem::Wine(_) => "Wine",
+                                flora_core::responses::FloraSeedTypeItem::Proton(_) => "Proton",
                             }
                         )
                     }
