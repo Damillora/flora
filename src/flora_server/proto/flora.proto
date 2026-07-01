@@ -5,6 +5,8 @@ service FloraManagerService {
   rpc CreateSeed(CreateSeedRequest) returns (CreateSeedResponse);
   rpc UpdateSeed(UpdateSeedRequest) returns (UpdateSeedResponse);
   rpc ListSeed(ListSeedRequest) returns (ListSeedResponse);
+  rpc RunExecutable(RunExecutableRequest) returns (RunExecutableResponse);
+  rpc RunApp(RunAppRequest) returns (RunAppResponse);
 }
 
 enum SeedType {
@@ -44,3 +46,17 @@ message ListSeedItem {
   string seed_name = 1;
   string seed_type = 2;
 }
+
+message RunExecutableRequest {
+  string seed_name = 1;
+  string command_line = 2;
+}
+
+message RunExecutableResponse {}
+
+message RunAppRequest {
+  string seed_name = 1;
+  string app_name = 2;
+}
+
+message RunAppResponse {}

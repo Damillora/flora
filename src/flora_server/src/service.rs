@@ -1,7 +1,7 @@
 use flora_core::{manager::FloraManager, seed::{FloraProtonSeed, FloraSeed, FloraSeedType, FloraWineSeed}};
 use tonic::{Request, Response, Status};
 
-use crate::proto::{self, ListSeedItem, ListSeedRequest, ListSeedResponse, SeedType::{Proton, Unspecified}, flora_manager_service_server::FloraManagerService};
+use crate::proto::{self, ListSeedItem, ListSeedRequest, ListSeedResponse, RunAppRequest, RunAppResponse, RunExecutableRequest, RunExecutableResponse, SeedType::{Proton, Unspecified}, flora_manager_service_server::FloraManagerService};
 
 pub struct FloraManagerServiceImpl
 {
@@ -93,5 +93,25 @@ impl FloraManagerService for FloraManagerServiceImpl {
         }).collect();
 
         Ok(Response::new(response))
+    }
+
+    async fn run_executable(&self, request: Request<RunExecutableRequest>) -> Result<Response<RunExecutableResponse>, Status>
+    {
+        let req = request.into_inner();
+
+        let command_param = shlex::split(&req.command_line).ok_or(Status::new(tonic::Code::InvalidArgument, "Invalid command line"))?;
+        let args: Vec<_> = command_param.iter().map(AsRef::as_ref).collect();
+
+        self.manager.seed_run_executable(&req.seed_name, &args, true, false).map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+
+        Ok(Response::new(RunExecutableResponse {  }))
+    }
+
+    async fn run_app(&self, request: Request<RunAppRequest>) -> Result<Response<RunAppResponse>, Status>
+    {
+        let req = request.into_inner();
+        self.manager.seed_run_app(&req.seed_name, &Some(&req.app_name), true, false).map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+
+        Ok(Response::new(RunAppResponse {  }))
     }
 }
