@@ -36,14 +36,10 @@ impl<'a> FloraWineRunner<'a> {
             // Prefix is defined in seed
             // Use prefix defined in seed.
             PathBuf::from(path.clone())
-        } else if let Some(wine_config) = &config.wine {
+        } else {
             // Prefix is not defined in seed, but there is a default prefix defined globally.
             // Use default prefix from global configuration.
-            PathBuf::from(&wine_config.default_wine_prefix)
-        } else {
-            // Prefix is not defined in seed and default prefix is not set.
-            // Use a well-known fallback prefix directory.
-            dirs.get_fallback_prefix()
+            PathBuf::from(&config.wine.default_wine_prefix)
         };
 
         let wine_runtime = if let Some(runner) = &wine_seed.wine_runtime {
@@ -52,8 +48,8 @@ impl<'a> FloraWineRunner<'a> {
             let mut wine_path = dirs.get_wine_root();
             wine_path.push(runner);
             PathBuf::from(&wine_path)
-        } else if let Some(wine_config) = &config.wine {
-            if let Some(default_wine_runtime) = &wine_config.default_wine_runtime
+        } else {
+            if let Some(default_wine_runtime) = &config.wine.default_wine_runtime
                 && !default_wine_runtime.is_empty()
             {
                 // Wine runtime is not defined in seed, but defined globally.
@@ -64,10 +60,6 @@ impl<'a> FloraWineRunner<'a> {
             } else {
                 PathBuf::from("/usr")
             }
-        } else {
-            // Wine runtime is not defined in seed and globally.
-            // Use system wine in /usr
-            PathBuf::from("/usr")
         };
         debug!("Wine dir: {}", &wine_runtime.to_string_lossy());
 

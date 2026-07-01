@@ -1,8 +1,5 @@
 use std::{
-    collections::BTreeMap,
-    env, fs,
-    path::PathBuf,
-    process::{Command, Stdio},
+    collections::BTreeMap, env, fs, path::{Path, PathBuf}, process::{Command, Stdio},
 };
 
 use flora_icon::FloraLink;
@@ -70,23 +67,29 @@ impl<'a> FloraProtonRunner<'a> {
         let proton_prefix = if let Some(path) = &proton_seed.proton_prefix {
             // Prefix is defined in seed
             // Use prefix defined by seed.
-            PathBuf::from(path.clone())
-        } else if let Some(proton_config) = &config.proton {
+            if Path::new(&path).is_relative() {
+                // Prefix is relative to wine prefix location
+                let mut new_path = PathBuf::from(
+                    config.proton.proton_prefix_location.clone(),
+                );
+                new_path.push(path);
+
+                new_path
+            } else {
+                // Prefix is absolute
+                PathBuf::from(path)
+            }
+        } else  {
             // Prefix is not defined in seed, but there is a default prefix defined globally.
             // Use default prefix from global configuration.
-            PathBuf::from(&proton_config.default_proton_prefix)
-        } else {
-            // Prefix is not defined in seed and default prefix is not set.
-            // Use a well-known fallback prefix directory.
-            dirs.get_fallback_prefix_proton()
+            PathBuf::from(&config.proton.default_proton_prefix)
         };
 
         let proton_runtime = if let Some(runner) = &proton_seed.proton_runtime {
             // Proton runtime is defined in seed.
             // Use Proton runtime defined in seed.
             find_proton_tool(dirs, runner)?
-        } else if let Some(proton_config) = &config.proton
-            && let Some(default_proton_runtime) = &proton_config.default_proton_runtime
+        } else if let Some(default_proton_runtime) = &config.proton.default_proton_runtime
         {
             // Proton runtime is not defined in seed, but defined globally.
             // Use Proton runtime defined in global configuration.

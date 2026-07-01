@@ -6,8 +6,8 @@ use crate::{dirs::FloraDirs, errors::FloraError};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FloraConfig {
-    pub wine: Option<FloraWineConfig>,
-    pub proton: Option<FloraProtonConfig>,
+    pub wine: FloraWineConfig,
+    pub proton: FloraProtonConfig,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -38,7 +38,7 @@ impl FloraConfig {
         };
 
         let default_config = FloraConfig {
-            wine: Some(FloraWineConfig {
+            wine: FloraWineConfig {
                 wine_prefix_location: {
                     let prefixes_dir = dirs.get_prefixes_root();
 
@@ -50,8 +50,8 @@ impl FloraConfig {
                     String::from(prefixes_dir.to_string_lossy())
                 },
                 default_wine_runtime: None,
-            }),
-            proton: Some(FloraProtonConfig {
+            },
+            proton: FloraProtonConfig {
                 proton_prefix_location: {
                     let prefixes_dir = dirs.get_prefixes_root();
 
@@ -63,7 +63,7 @@ impl FloraConfig {
                     String::from(prefixes_dir.to_string_lossy())
                 },
                 default_proton_runtime: None,
-            }),
+            },
         };
 
         if !fs::exists(&config_path)? {
