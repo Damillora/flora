@@ -4,8 +4,7 @@ use std::
 
 use serde::{Deserialize, Serialize};
 
-use crate::{errors::FloraError, seed};
-
+use crate::{errors::FloraError};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -64,20 +63,19 @@ impl FloraSeed {
     pub fn get_app(&self, app_name: &str) -> Result<FloraSeedApp, FloraError> {
         if let Some(idx) = self.apps.iter().position(|i| {
             i.application_name == app_name
-        }) {
-            if let Some(app) = self.apps.get(idx)
-            {
-                return Ok(app.clone());
-            }
+        })
+        && let Some(app) = self.apps.get(idx)
+        {
+            return Ok(app.clone());
         }
 
         Err(FloraError::AppNotFound(app_name.to_string()))
     }
 
     pub fn add_app(&mut self, new_app: FloraSeedApp) -> Result<(), FloraError> {
-        if let None = self.apps.iter().position(|i| {
+        if self.apps.iter().position(|i| {
             i.application_name == new_app.application_name
-        }) {
+        }).is_none() {
             self.apps.push(new_app);
 
             Ok(())
@@ -145,7 +143,7 @@ impl FloraSeed {
 impl FloraSeed {
     pub fn get_env(&self) -> BTreeMap<String, String>
     {
-        self.env.clone().unwrap_or(BTreeMap::new())
+        self.env.clone().unwrap_or_default()
     }
     pub fn update_env(&mut self, env_name: &str, env_value: &str)
     {

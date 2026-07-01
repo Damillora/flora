@@ -214,9 +214,9 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
         if let Some(args) = args {
             command.args(args);
         }
-        let mut handle = command.spawn().map_err(|e| FloraError::RunnerExecError(e))?;
+        let mut handle = command.spawn().map_err(FloraError::RunnerExecError)?;
         if wait {
-            handle.wait().map_err(|e| FloraError::RunnerExecError(e))?;
+            handle.wait().map_err(FloraError::RunnerExecError)?;
         }
 
         Ok(())
@@ -231,9 +231,9 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             command.stdin(Stdio::null()).stdout(log_out).stderr(log_err);
         }
 
-        let mut handle = command.spawn().map_err(|e| FloraError::RunnerExecError(e))?;
+        let mut handle = command.spawn().map_err(FloraError::RunnerExecError)?;
         if wait {
-            handle.wait().map_err(|e| FloraError::RunnerExecError(e))?;
+            handle.wait().map_err(FloraError::RunnerExecError)?;
         }
 
         Ok(())

@@ -90,7 +90,7 @@ impl<'a> FloraProtonRunner<'a> {
         {
             // Proton runtime is not defined in seed, but defined globally.
             // Use Proton runtime defined in global configuration.
-            find_proton_tool(dirs, &default_proton_runtime)?
+            find_proton_tool(dirs, default_proton_runtime)?
         } else {
             // Proton runtime is not defined in seed nor global.
             // Define an empty runtime, and let umu-launcher decide.
@@ -118,7 +118,7 @@ impl<'a> FloraProtonRunner<'a> {
         // Check proton prefix folder
         debug!("Proton prefix: {}", proton_prefix.to_string_lossy());
 
-        if !fs::exists(&proton_prefix).map_err(|e| FloraError::FileAccessError(e))? {
+        if !fs::exists(&proton_prefix).map_err(FloraError::FileAccessError)? {
             info!("Prefix not found, but will be created at launch");
         }
 
@@ -236,9 +236,9 @@ impl<'a> FloraRunner for FloraProtonRunner<'a> {
             command.stdin(Stdio::null()).stdout(log_out).stderr(log_err);
         }
 
-        let mut handle = command.spawn().map_err(|e| FloraError::RunnerExecError(e))?;
+        let mut handle = command.spawn().map_err(FloraError::RunnerExecError)?;
         if wait {
-            handle.wait().map_err(|e| FloraError::RunnerExecError(e))?;
+            handle.wait().map_err(FloraError::RunnerExecError)?;
         }
 
         Ok(())

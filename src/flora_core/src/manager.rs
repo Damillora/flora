@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeMap,
     fs::{self, read_dir},
     path::PathBuf,
 };
@@ -8,7 +7,7 @@ use directories::ProjectDirs;
 use log::debug;
 
 use crate::{
-    config::FloraConfig, desktop, dirs::FloraDirs, errors::FloraError, runners, seed::{self, FloraSeed, FloraSeedApp, FloraSeedType}, start_menu::FloraSeedStartMenuItem,
+    config::FloraConfig, desktop, dirs::FloraDirs, errors::FloraError, runners, seed::{FloraSeed, FloraSeedApp, FloraSeedType}, start_menu::FloraSeedStartMenuItem,
 };
 
 /// Manages Flora seeds configurations

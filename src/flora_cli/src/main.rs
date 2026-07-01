@@ -463,7 +463,7 @@ impl<'a> From<&'a FloraSeedApp> for SeedAppTableRow<'a> {
         Self {
             application_name: item.application_name.as_str(),
             application_location: item.application_location.as_str(),
-            category: &item.category.as_deref().unwrap_or("Other"),
+            category: item.category.as_deref().unwrap_or("Other"),
         }
     }
 }
@@ -550,10 +550,10 @@ fn set_wine_seed(manager: &FloraManager, args: &SetWineOpts) -> Result<(), Flora
     let mut seed = manager.get_seed(&args.seed.name)?;
 
     if let FloraSeedType::Wine(ref mut wine_settings) = seed.seed_type {
-        if let Some(_) = args.wine_prefix {
+        if args.wine_prefix.is_some() {
             wine_settings.wine_prefix = args.wine_prefix.clone();
         }
-        if let Some(_) = args.wine_runtime {
+        if args.wine_runtime.is_some() {
             wine_settings.wine_runtime = args.wine_runtime.clone();
         }
     } else {
@@ -568,16 +568,16 @@ fn set_proton_seed(manager: &FloraManager, args: &SetProtonOpts) -> Result<(), F
     let mut seed = manager.get_seed(&args.seed.name)?;
 
     if let FloraSeedType::Proton(ref mut proton_settings) = seed.seed_type {
-        if let Some(_) = args.proton_prefix {
+        if args.proton_prefix.is_some() {
             proton_settings.proton_prefix = args.proton_prefix.clone();
         }
-        if let Some(_) = args.proton_runtime {
+        if args.proton_runtime.is_some() {
             proton_settings.proton_runtime = args.proton_runtime.clone();
         }
-        if let Some(_) = args.game_id {
+        if args.game_id.is_some() {
             proton_settings.game_id = args.game_id.clone();
         }
-        if let Some(_) = args.store {
+        if args.store.is_some() {
             proton_settings.store = args.store.clone();
         }
     } else {
@@ -643,7 +643,7 @@ fn main() -> Result<(), FloraError> {
                 let env = seed.get_env();
                 println!("{}", table);
                 println!("Environnment variables:");
-                if env.len() == 0 {
+                if env.is_empty() {
                     println!("  No environment variables defined");
                 } else {
                     let env_items = env.iter().map(SeedEnvTableRow::from);
@@ -671,7 +671,7 @@ fn main() -> Result<(), FloraError> {
                     let seed = manager.get_seed(&seed_env_list_opts.seed.name)?;
                     let env = seed.get_env();
 
-                    if env.len() == 0 {
+                    if env.is_empty() {
                         println!("  No environment variables defined");
                     } else {
                         if seed_env_list_opts.long {
