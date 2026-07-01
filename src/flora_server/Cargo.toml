@@ -9,9 +9,11 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
+directories = "6.0.0"
 flora_core = { version = "0.3.0", path = "../flora_core" }
 prost = "0.14.4"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
+tokio-stream = { version = "0.1.18", features = ["net"] }
 tonic = "0.14.6"
 tonic-prost = "0.14.6"
 
