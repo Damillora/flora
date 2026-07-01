@@ -10,20 +10,14 @@ use log::{debug, info};
 use walkdir::WalkDir;
 
 use crate::{
-    config::FloraConfig,
-    dirs::FloraDirs,
-    errors::FloraError,
-    responses::FloraSeedStartMenuItem,
-    runners::FloraRunner,
-    seed::{FloraProtonSeed, FloraSeedApp, FloraSeedSettings},
-    winepath,
+    config::FloraConfig, dirs::FloraDirs, errors::FloraError, runners::FloraRunner, seed::{FloraProtonSeed, FloraSeedApp, FloraSeedSettings}, start_menu::FloraSeedStartMenuItem, winepath,
 };
 
 pub struct FloraProtonRunner<'a> {
     name: &'a str,
     dirs: &'a FloraDirs,
     settings: &'a Option<Box<FloraSeedSettings>>,
-    env: &'a Option<BTreeMap<String, String>>,
+    env: BTreeMap<String, String>,
     proton_seed: &'a FloraProtonSeed,
 
     prefix: PathBuf,
@@ -70,7 +64,7 @@ impl<'a> FloraProtonRunner<'a> {
         dirs: &'a FloraDirs,
         config: &'a FloraConfig,
         settings: &'a Option<Box<FloraSeedSettings>>,
-        env: &'a Option<BTreeMap<String, String>>,
+        env: BTreeMap<String, String>,
         proton_seed: &'a FloraProtonSeed,
     ) -> Result<Self, FloraError> {
         let proton_prefix = if let Some(path) = &proton_seed.proton_prefix {
@@ -181,11 +175,10 @@ impl<'a> FloraProtonRunner<'a> {
             Command::new(&self.umu)
         };
 
-        if let Some(envs) = self.env {
-            for (env_name, env_val) in envs {
-                command.env(env_name, env_val);
-            }
+        for (env_name, env_val) in self.env.iter() {
+            command.env(env_name, env_val);
         }
+
         command
             .env("WINEPREFIX", proton_prefix)
             .env("PROTONPATH", proton_tool)

@@ -22,6 +22,8 @@ pub enum FloraError {
     #[error("User does not have a valid home directory")]
     NoValidHome,
 
+    #[error("This runner cannot run applications")]
+    RunnerNone,
     #[error("Unable to find runner {0}")]
     MissingRunner(PathBuf),
     #[error("Seed runner-specific options not found")]
@@ -32,7 +34,7 @@ pub enum FloraError {
     #[error("Seed already exists: {0}")]
     SeedExists(String),
     #[error("Seed not of the correct type")]
-    SeedOptionsMismatch,
+    SeedWrongType(String),
 
     #[error("Application already exists: {0}")]
     AppExists(String),

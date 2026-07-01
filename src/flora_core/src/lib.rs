@@ -15,16 +15,15 @@ pub mod errors;
 /// Handles creation and deletion of seeds
 pub mod manager;
 
+/// Flora Start Menu management
+///
+/// Contains classes for start menu entries
+pub mod start_menu;
+
 /// Flora seed configuration
 ///
 /// Contains functions related to Flora seeds. Flora seeds are a single Wine or Proton configuration, with its own WINEPREFIX.
 pub mod seed;
-
-/// Flora request structs
-pub mod requests;
-
-/// Flora response structs
-pub mod responses;
 
 /// Flora runners
 /// Contains functionality to launch seeds

@@ -1,33 +1,31 @@
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-};
+use std::
+    collections::BTreeMap
+;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    config::FloraConfig,
-    errors::FloraError,
-    requests::{FloraCreateSeed, FloraCreateSeedApp, FloraSeedAppOperations, FloraUpdateSeed},
-};
+use crate::{errors::FloraError, seed};
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum FloraSeedType {
+pub enum FloraSeedType {
     /// Wine App
     Wine(FloraWineSeed),
     /// Proton App
     Proton(FloraProtonSeed),
+    /// Empty App
+    None,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct FloraWineSeed {
+pub struct FloraWineSeed {
     pub wine_prefix: Option<String>,
     pub wine_runtime: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct FloraProtonSeed {
+pub struct FloraProtonSeed {
     pub proton_prefix: Option<String>,
     pub proton_runtime: Option<String>,
     pub game_id: Option<String>,
@@ -35,260 +33,142 @@ pub(crate) struct FloraProtonSeed {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct FloraSeed {
+pub struct FloraSeed {
     pub settings: Option<Box<FloraSeedSettings>>,
-    pub apps: Vec<FloraSeedApp>,
-    pub env: Option<BTreeMap<String, String>>,
+    apps: Vec<FloraSeedApp>,
+    env: Option<BTreeMap<String, String>>,
 
     #[serde(flatten)]
     pub seed_type: FloraSeedType,
 }
 
+// Create seed
+impl Default for FloraSeed {
+    fn default() -> Self {
+        Self {
+            settings: None,
+            apps: Vec::new(),
+            env: None,
+
+            seed_type: FloraSeedType::None,
+        }
+    }
+}
+
+// App functions
+impl FloraSeed {
+    pub fn get_apps(&self) -> Vec<FloraSeedApp> {
+        self.apps.clone()
+    }
+
+    pub fn get_app(&self, app_name: &str) -> Result<FloraSeedApp, FloraError> {
+        if let Some(idx) = self.apps.iter().position(|i| {
+            i.application_name == app_name
+        }) {
+            if let Some(app) = self.apps.get(idx)
+            {
+                return Ok(app.clone());
+            }
+        }
+
+        Err(FloraError::AppNotFound(app_name.to_string()))
+    }
+
+    pub fn add_app(&mut self, new_app: FloraSeedApp) -> Result<(), FloraError> {
+        if let None = self.apps.iter().position(|i| {
+            i.application_name == new_app.application_name
+        }) {
+            self.apps.push(new_app);
+
+            Ok(())
+        } else {
+            Err(FloraError::AppExists(new_app.application_name))
+        }
+    }
+
+    pub fn delete_app(&mut self, app_name: &str) -> Result<(), FloraError> {
+        if let Some(idx) = self
+            .apps
+            .iter()
+            .position(|i| i.application_name == app_name)
+        {
+            self.apps.remove(idx);
+
+            Ok(())
+        } else {
+            Err(FloraError::AppNotFound(app_name.to_string()))
+        }
+    }
+
+    pub fn rename_app(&mut self, old_app_name: &str, new_app_name: &str) -> Result<(), FloraError>  {
+        if let Some(idx) = self.apps.iter().position(|i| {
+            i.application_name == old_app_name
+        }) {
+            if let Some(app) = self.apps.get_mut(idx)
+            {
+                app.application_name =
+                    String::from(new_app_name);
+            }
+
+            Ok(())
+        } else {
+            Err(FloraError::AppNotFound(old_app_name.to_string()))
+        }
+    }
+
+
+    pub fn update_app(&mut self, app_name: &str, app: FloraSeedApp) -> Result<(), FloraError> {
+        if let Some(idx) = self.apps.iter().position(|i| {
+            i.application_name == app_name
+        }) {
+            self.apps[idx] = app;
+
+            Ok(())
+        } else {
+            Err(FloraError::AppNotFound(app_name.to_string()))
+        }
+    }
+
+    pub fn get_app_or_default(&self, app_name: &Option<&str>) -> Result<FloraSeedApp, FloraError> {
+        let app_entry = match &app_name {
+            Some(app_name) => self.apps
+                .iter()
+                .find(|item| &item.application_name == app_name).ok_or(FloraError::AppNotFound(app_name.to_string()))?,
+            None => self.apps.first().ok_or(FloraError::AppNotFound(String::from("")))?,
+        };
+
+        Ok(app_entry.clone())
+    }
+}
+
+// Env functions
+impl FloraSeed {
+    pub fn get_env(&self) -> BTreeMap<String, String>
+    {
+        self.env.clone().unwrap_or(BTreeMap::new())
+    }
+    pub fn update_env(&mut self, env_name: &str, env_value: &str)
+    {
+        // Edit environment
+        let seed_env = self.env.get_or_insert(BTreeMap::new());
+        seed_env.insert(String::from(env_name), String::from(env_value));
+    }
+
+    pub fn delete_env(&mut self, env_name: &str)
+    {
+        // Edit environment
+        let seed_env = self.env.get_or_insert(BTreeMap::new());
+        seed_env.remove(env_name);
+    }
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct FloraSeedSettings {
+pub struct FloraSeedSettings {
     pub launcher_command: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct FloraSeedApp {
+pub struct FloraSeedApp {
     pub application_name: String,
     pub application_location: String,
     pub category: Option<String>,
-}
-impl<'a> From<&FloraCreateSeedApp<'a>> for FloraSeedApp {
-    fn from(value: &FloraCreateSeedApp) -> Self {
-        Self {
-            application_name: String::from(value.application_name),
-            application_location: String::from(value.application_location),
-            category: value.category.map(String::from),
-        }
-    }
-}
-
-// Instance functions
-impl FloraSeed {
-    pub(crate) fn merge_options(&mut self, seed_opts: &FloraUpdateSeed) -> Result<(), FloraError> {
-        match (seed_opts, &mut self.seed_type) {
-            (
-                FloraUpdateSeed::WineOptions(flora_update_wine_seed),
-                FloraSeedType::Wine(flora_wine_seed),
-            ) => {
-                if let Some(wine_prefix) = flora_update_wine_seed.wine_prefix {
-                    flora_wine_seed.wine_prefix = Some(String::from(wine_prefix));
-                }
-                if let Some(wine_runtime) = flora_update_wine_seed.wine_runtime {
-                    flora_wine_seed.wine_runtime = Some(String::from(wine_runtime));
-                }
-
-                Ok(())
-            }
-            (
-                FloraUpdateSeed::ProtonOptions(flora_update_proton_seed),
-                FloraSeedType::Proton(flora_proton_seed),
-            ) => {
-                if let Some(proton_prefix) = flora_update_proton_seed.proton_prefix {
-                    flora_proton_seed.proton_prefix = Some(String::from(proton_prefix));
-                }
-                if let Some(proton_runtime) = flora_update_proton_seed.proton_runtime {
-                    flora_proton_seed.proton_runtime = Some(String::from(proton_runtime));
-                }
-                if let Some(game_id) = flora_update_proton_seed.game_id {
-                    flora_proton_seed.game_id = Some(String::from(game_id));
-                }
-                if let Some(store) = flora_update_proton_seed.store {
-                    flora_proton_seed.store = Some(String::from(store));
-                }
-
-                Ok(())
-            }
-            _ => Err(FloraError::SeedOptionsMismatch),
-        }
-    }
-
-    pub(crate) fn update_apps(
-        &mut self,
-        seed_ops: &Vec<FloraSeedAppOperations>,
-    ) -> Result<(), FloraError> {
-        for op in seed_ops {
-            match &op {
-                FloraSeedAppOperations::Add(flora_create_seed_app) => {
-                    if !self
-                        .apps
-                        .iter()
-                        .any(|i| i.application_name == flora_create_seed_app.application_name)
-                    {
-                        self.apps.push(FloraSeedApp::from(flora_create_seed_app));
-                    } else {
-                        return Err(FloraError::AppExists(flora_create_seed_app.application_name.to_string()));
-                    }
-                }
-                FloraSeedAppOperations::Update(flora_update_seed_app) => {
-                    if let Some(idx) = self
-                        .apps
-                        .iter()
-                        .position(|i| i.application_name == flora_update_seed_app.application_name)
-                    {
-                        let app = self.apps.get_mut(idx).ok_or(FloraError::AppNotFound(flora_update_seed_app.application_name.to_string()))?;
-
-                        if let Some(app_location) = flora_update_seed_app.application_location {
-                            app.application_location = String::from(app_location);
-                        }
-
-                        if let Some(app_category) = flora_update_seed_app.category {
-                            app.category = Some(String::from(app_category));
-                        }
-                    } else {
-                        return Err(FloraError::AppNotFound(flora_update_seed_app.application_name.to_string()));
-                    }
-                }
-                FloraSeedAppOperations::Rename(flora_rename_seed_app) => {
-                    if let Some(idx) = self.apps.iter().position(|i| {
-                        i.application_name == flora_rename_seed_app.old_application_name
-                    }) {
-                        if let Some(app) = self.apps.get_mut(idx)
-                        {
-                            app.application_name =
-                                String::from(flora_rename_seed_app.new_application_name);
-                        }
-                    } else {
-                        return Err(FloraError::AppNotFound(flora_rename_seed_app.old_application_name.to_string()));
-                    }
-                }
-                FloraSeedAppOperations::Delete(flora_delete_seed_app) => {
-                    if let Some(idx) = self
-                        .apps
-                        .iter()
-                        .position(|i| i.application_name == flora_delete_seed_app.application_name)
-                    {
-                        self.apps.remove(idx);
-                    } else {
-                        return Err(FloraError::AppNotFound(flora_delete_seed_app.application_name.to_string()));
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-}
-
-// Static functions
-impl FloraSeed {
-    /// Converts Options passed from the frontend into a Seed, the actual configuration format used to launch Flora seeds.
-    pub(crate) fn from_options(
-        config: &FloraConfig,
-        seed_opts: &FloraCreateSeed,
-    ) -> Result<FloraSeed, FloraError> {
-        // Wine config must be set up in flora.toml first
-        match seed_opts {
-            FloraCreateSeed::WineOptions(opts) => {
-                if let Some(wine_opts) = &config.wine {
-                    Ok(FloraSeed {
-                        settings: opts
-                            .settings
-                            .as_ref()
-                            .map(|m| FloraSeedSettings {
-                                launcher_command: m.launcher_command.map(String::from),
-                            })
-                            .map(Box::from)
-                            .to_owned(),
-                        apps: match &opts.default_application {
-                            Some(default_application) => {
-                                vec![FloraSeedApp {
-                                    application_name: default_application
-                                        .application_name
-                                        .to_owned(),
-                                    application_location: default_application
-                                        .application_location
-                                        .to_owned(),
-                                    category: default_application.category.map(String::from),
-                                }]
-                            }
-                            None => vec![],
-                        },
-                        env: None,
-
-                        seed_type: FloraSeedType::Wine(FloraWineSeed {
-                            wine_prefix: {
-                                match opts.wine_prefix.to_owned() {
-                                    None => Some(wine_opts.default_wine_prefix.clone()),
-                                    Some(prefix) => {
-                                        if Path::new(&prefix).is_relative() {
-                                            // Prefix is relative to wine prefix location
-                                            let mut new_path = PathBuf::from(
-                                                wine_opts.wine_prefix_location.clone(),
-                                            );
-                                            new_path.push(prefix);
-
-                                            Some(String::from(new_path.to_string_lossy()))
-                                        } else {
-                                            // Prefix is absolute
-                                            Some(String::from(prefix))
-                                        }
-                                    }
-                                }
-                            },
-                            wine_runtime: opts.wine_runner.map(String::from),
-                        }),
-                    })
-                } else {
-                    Err(FloraError::MissingRunnerConfig)
-                }
-            }
-            FloraCreateSeed::ProtonOptions(opts) => {
-                if let Some(proton_opts) = &config.proton {
-                    Ok(FloraSeed {
-                        settings: opts
-                            .settings
-                            .as_ref()
-                            .map(|m| FloraSeedSettings {
-                                launcher_command: m.launcher_command.map(String::from),
-                            })
-                            .map(Box::from)
-                            .to_owned(),
-                        apps: match &opts.default_application {
-                            Some(default_application) => {
-                                vec![FloraSeedApp {
-                                    application_name: default_application
-                                        .application_name
-                                        .to_owned(),
-                                    application_location: default_application
-                                        .application_location
-                                        .to_owned(),
-                                    category: default_application.category.map(String::from),
-                                }]
-                            }
-                            None => vec![],
-                        },
-                        env: None,
-
-                        seed_type: FloraSeedType::Proton(FloraProtonSeed {
-                            proton_prefix: match opts.proton_prefix.to_owned() {
-                                None => Some(proton_opts.default_proton_prefix.clone()),
-                                Some(prefix) => {
-                                    if Path::new(&prefix).is_relative() {
-                                        // Prefix is relative to wine prefix location
-                                        let mut new_path = PathBuf::from(
-                                            proton_opts.proton_prefix_location.clone(),
-                                        );
-                                        new_path.push(prefix);
-
-                                        Some(String::from(new_path.to_string_lossy()))
-                                    } else {
-                                        // Prefix is absolute
-                                        Some(String::from(prefix))
-                                    }
-                                }
-                            },
-                            proton_runtime: opts.proton_runtime.map(String::from),
-                            game_id: opts.game_id.map(String::from),
-                            store: opts.store.map(String::from),
-                        }),
-                    })
-                } else {
-                    Err(FloraError::MissingRunnerConfig)
-                }
-            }
-        }
-    }
 }

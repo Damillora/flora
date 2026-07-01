@@ -1,0 +1,25 @@
+syntax = "proto3";
+package flora;
+
+service FloraManagerService {
+  rpc CreateWineSeed(CreateWineSeedRequest) returns (CreateWineSeedResponse);
+  rpc CreateProtonSeed(CreateProtonSeedRequest) returns (CreateProtonSeedResponse);
+}
+
+message CreateWineSeedRequest {
+  string seed_name = 1;
+  string prefix = 2;
+  string runtime = 3;
+}
+
+message CreateWineSeedResponse {}
+
+message CreateProtonSeedRequest {
+  string seed_name = 1;
+  string prefix = 2;
+  string runtime = 3;
+  string game_id = 4;
+  string game_store = 5;
+}
+
+message CreateProtonSeedResponse {}

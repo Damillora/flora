@@ -8,14 +8,7 @@ use directories::ProjectDirs;
 use log::debug;
 
 use crate::{
-    config::FloraConfig,
-    desktop,
-    dirs::FloraDirs,
-    errors::FloraError,
-    requests::{FloraCreateSeed, FloraCreateSeedApp, FloraSeedAppOperations, FloraUpdateSeed},
-    responses::{FloraSeedItem, FloraSeedStartMenuItem},
-    runners,
-    seed::FloraSeed,
+    config::FloraConfig, desktop, dirs::FloraDirs, errors::FloraError, runners, seed::{self, FloraSeed, FloraSeedApp, FloraSeedType}, start_menu::FloraSeedStartMenuItem,
 };
 
 /// Manages Flora seeds configurations
@@ -49,17 +42,8 @@ impl FloraManager {
         Ok(seed)
     }
 
-    fn write_seed_config(&self, name: &str, seed: &FloraSeed) -> Result<(), FloraError> {
-        let seed_toml = toml::to_string(seed)?;
-
-        let seed_path = self.seed_path(name);
-        fs::write(seed_path, seed_toml)?;
-
-        Ok(())
-    }
-
     /// Creates a new Flora seed
-    pub fn create_seed(&self, name: &str, seed_opts: &FloraCreateSeed) -> Result<(), FloraError> {
+    pub fn create_seed(&self, name: &str, new_seed: &FloraSeed) -> Result<(), FloraError> {
         if self.is_seed_exists(name)? {
             return Err(FloraError::SeedExists(name.to_string()));
         }
@@ -68,16 +52,16 @@ impl FloraManager {
 
         debug!("Creating seed at {}", &new_seed_location.to_string_lossy());
 
-        let new_seed = FloraSeed::from_options(&self.config, seed_opts)?;
-        let new_toml = toml::to_string(&new_seed).map_err(FloraError::from)?;
+        let new_toml = toml::to_string(new_seed).map_err(FloraError::from)?;
 
         // Write the content to the file
         fs::write(&new_seed_location, new_toml.as_bytes())?;
 
         Ok(())
     }
+
     /// Edit seed
-    pub fn update_seed(&self, name: &str, upd_data: &FloraUpdateSeed) -> Result<(), FloraError> {
+    pub fn update_seed(&self, name: &str, seed: &FloraSeed) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound(name.to_string()));
         }
@@ -86,86 +70,10 @@ impl FloraManager {
 
         debug!("Updating seed at {}", &seed_location.to_string_lossy());
 
-        let mut seed_config = self.read_seed(name)?;
-        seed_config.merge_options(upd_data)?;
+        let seed_toml = toml::to_string(seed)?;
 
-        self.write_seed_config(name, &seed_config)?;
-
-        Ok(())
-    }
-    /// Edit seed env
-    pub fn update_seed_env(
-        &self,
-        name: &str,
-        env_name: &str,
-        env_value: &str,
-    ) -> Result<(), FloraError> {
-        if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound(name.to_string()));
-        }
-
-        let seed_location = self.seed_path(name);
-
-        debug!(
-            "Setting env variable {} at {}",
-            &env_name,
-            &seed_location.to_string_lossy()
-        );
-        let mut seed_config = self.read_seed(name)?;
-
-        // Edit environment
-        let mut seed_env = seed_config.env.unwrap_or(BTreeMap::new());
-        seed_env.insert(String::from(env_name), String::from(env_value));
-
-        // Move back edited env
-        seed_config.env = Some(seed_env);
-        self.write_seed_config(name, &seed_config)?;
-
-        Ok(())
-    }
-    /// Edit seed env
-    pub fn delete_seed_env(&self, name: &str, env_name: &str) -> Result<(), FloraError> {
-        if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound(name.to_string()));
-        }
-
-        let seed_location = self.seed_path(name);
-
-        debug!(
-            "Deleting env variable {} at {}",
-            &env_name,
-            &seed_location.to_string_lossy()
-        );
-        let mut seed_config = self.read_seed(name)?;
-
-        // Edit environment
-        let mut seed_env = seed_config.env.unwrap_or(BTreeMap::new());
-        seed_env.remove(env_name);
-
-        // Move back edited env
-        seed_config.env = Some(seed_env);
-        self.write_seed_config(name, &seed_config)?;
-
-        Ok(())
-    }
-    /// Edit seed apps
-    pub fn update_seed_apps(
-        &self,
-        name: &str,
-        upd_data: &Vec<FloraSeedAppOperations>,
-    ) -> Result<(), FloraError> {
-        if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound(name.to_string()));
-        }
-
-        let seed_location = self.seed_path(name);
-
-        debug!("Updating seed at {}", &seed_location.to_string_lossy());
-
-        let mut seed_config = self.read_seed(name)?;
-        seed_config.update_apps(upd_data)?;
-
-        self.write_seed_config(name, &seed_config)?;
+        let seed_path = self.seed_path(name);
+        fs::write(seed_path, seed_toml)?;
 
         Ok(())
     }
@@ -191,16 +99,17 @@ impl FloraManager {
         }
 
         let seed = self.read_seed(name)?;
-
         let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
         let start_menu_location = runner.get_start_menu_entry_location(menu_name)?;
-        let update_seed_operation = vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
-            application_name: menu_name,
-            application_location: start_menu_location.as_str(),
-            category: None,
-        })];
 
-        self.update_seed_apps(name, &update_seed_operation)
+        let mut upd_seed = seed.clone();
+        upd_seed.add_app(FloraSeedApp{
+            application_name: menu_name.to_string(),
+            application_location: start_menu_location,
+            category: None,
+        })?;
+
+        self.update_seed(name, &upd_seed)
     }
 
     /// Deletes new Flora seed
@@ -218,34 +127,41 @@ impl FloraManager {
         Ok(())
     }
 
-    pub fn list_seed(&self) -> Result<Vec<FloraSeedItem>, FloraError> {
+    pub fn list_seed(&self) -> Result<Vec<FloraSeedListItem>, FloraError> {
         let seed_dir = self.flora_dirs.get_seed_root();
 
         let files = read_dir(&seed_dir)?;
 
         files
             .map(|file_path| -> Result<PathBuf, FloraError> { Ok(file_path?.path()) })
-            .map(|seed_config_path| -> Result<FloraSeedItem, FloraError> {
+            .map(|seed_config_path| -> Result<FloraSeedListItem, FloraError> {
                 let file_path = seed_config_path?;
                 let file_stem = file_path.file_stem().unwrap_or_default();
                 let name = String::from(file_stem.to_string_lossy());
 
                 let config = self.read_seed(&name)?;
 
-                Ok(FloraSeedItem::from_config(&name, &config))
+                Ok(FloraSeedListItem {
+                    seed_name: name,
+                    seed_type: match config.seed_type {
+                        FloraSeedType::Wine(_) => "wine".to_string(),
+                        FloraSeedType::Proton(_) => "proton".to_string(),
+                        FloraSeedType::None => "none".to_string(),
+                    },
+                })
             })
             .collect()
     }
 
     /// Deletes new Flora seed
-    pub fn show_seed(&self, name: &str) -> Result<FloraSeedItem, FloraError> {
+    pub fn get_seed(&self, name: &str) -> Result<FloraSeed, FloraError> {
         if !self.is_seed_exists(name)? {
             return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed_config = self.read_seed(name)?;
 
-        Ok(FloraSeedItem::from_config(name, &seed_config))
+        Ok(seed_config)
     }
 
     /// Launches the prefix configuration dialog of an seed (usually winecfg)
@@ -297,23 +213,13 @@ impl FloraManager {
         }
         let seed = self.read_seed(name)?;
 
-        let app_entry = match &app_name {
-            Some(app_name) => seed
-                .apps
-                .iter()
-                .find(|item| &item.application_name == app_name),
-            None => seed.apps.first(),
-        };
+        let app_entry = seed.get_app_or_default(app_name)?;
 
-        if let Some(app_entry) = app_entry {
-            // Determine arguments to be passed to runner
-            let new_args = [&*app_entry.application_location];
+        // Determine arguments to be passed to runner
+        let new_args = [app_entry.application_location.as_str()];
 
-            let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
-            runner.run_executable(&new_args, quiet, wait)
-        } else {
-            Err(FloraError::AppNotFound(String::from(app_name.unwrap_or("default"))))
-        }
+        let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
+        runner.run_executable(&new_args, quiet, wait)
     }
 
     /// Launches an executable inside an seed's prefix
@@ -368,13 +274,13 @@ impl FloraManager {
             debug!("Generating menu entries for seed {}", name);
 
             let runner = runners::create_runner(&name, &self.flora_dirs, &self.config, &seed)?;
-            let mut apps: Vec<_> = seed.apps.iter().collect();
+            let mut apps: Vec<_> = seed.get_apps();
             if let Some(app_name) = app_name {
                 apps.retain(|app| app.application_name == app_name);
             }
 
             for app in apps {
-                runner.create_desktop_entry(app)?;
+                runner.create_desktop_entry(&app)?;
             }
         }
 
@@ -401,4 +307,10 @@ impl FloraManager {
             config: Box::new(config),
         })
     }
+}
+
+// List models
+pub struct FloraSeedListItem {
+    pub seed_name: String,
+    pub seed_type: String,
 }

@@ -1,10 +1,5 @@
 use crate::{
-    config::FloraConfig,
-    dirs::FloraDirs,
-    errors::FloraError,
-    responses::FloraSeedStartMenuItem,
-    runners::{proton::FloraProtonRunner, wine::FloraWineRunner},
-    seed::{FloraSeed, FloraSeedApp, FloraSeedType},
+    config::FloraConfig, dirs::FloraDirs, errors::FloraError, runners::{proton::FloraProtonRunner, wine::FloraWineRunner}, seed::{FloraSeed, FloraSeedApp, FloraSeedType}, start_menu::FloraSeedStartMenuItem,
 };
 
 /// Proton runner
@@ -40,15 +35,18 @@ pub fn create_runner<'a>(
     match &seed.seed_type {
         FloraSeedType::Wine(wine_seed) => {
             let runner =
-                FloraWineRunner::new(name, dirs, config, &seed.settings, &seed.env, wine_seed)?;
+                FloraWineRunner::new(name, dirs, config, &seed.settings, seed.get_env(), wine_seed)?;
 
             Ok(Box::new(runner))
         }
         FloraSeedType::Proton(proton_seed) => {
             let runner =
-                FloraProtonRunner::new(name, dirs, config, &seed.settings, &seed.env, proton_seed)?;
+                FloraProtonRunner::new(name, dirs, config, &seed.settings, seed.get_env(), proton_seed)?;
 
             Ok(Box::new(runner))
+        }
+        FloraSeedType::None => {
+            Err(FloraError::RunnerNone)
         }
     }
 }

@@ -10,20 +10,14 @@ use log::{debug, info};
 use walkdir::WalkDir;
 
 use crate::{
-    config::FloraConfig,
-    dirs::FloraDirs,
-    errors::FloraError,
-    responses::FloraSeedStartMenuItem,
-    runners::FloraRunner,
-    seed::{FloraSeedApp, FloraSeedSettings, FloraWineSeed},
-    winepath,
+    config::FloraConfig, dirs::FloraDirs, errors::FloraError, runners::FloraRunner, seed::{FloraSeedApp, FloraSeedSettings, FloraWineSeed}, start_menu::FloraSeedStartMenuItem, winepath,
 };
 
 pub struct FloraWineRunner<'a> {
     name: &'a str,
     dirs: &'a FloraDirs,
     settings: &'a Option<Box<FloraSeedSettings>>,
-    env: &'a Option<BTreeMap<String, String>>,
+    env: BTreeMap<String, String>,
 
     prefix: PathBuf,
     runtime: PathBuf,
@@ -35,7 +29,7 @@ impl<'a> FloraWineRunner<'a> {
         dirs: &'a FloraDirs,
         config: &'a FloraConfig,
         settings: &'a Option<Box<FloraSeedSettings>>,
-        env: &'a Option<BTreeMap<String, String>>,
+        env: BTreeMap<String, String>,
         wine_seed: &'a FloraWineSeed,
     ) -> Result<Self, FloraError> {
         let wine_prefix = if let Some(path) = &wine_seed.wine_prefix {
@@ -149,11 +143,10 @@ impl<'a> FloraWineRunner<'a> {
             Command::new(&wine_exe)
         };
 
-        if let Some(envs) = self.env {
-            for (env_name, env_val) in envs {
-                command.env(env_name, env_val);
-            }
+        for (env_name, env_val) in self.env.iter() {
+            command.env(env_name, env_val);
         }
+
         command.env("WINEPREFIX", wine_prefix).args(args);
 
         debug!(
@@ -202,11 +195,11 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
 
         use std::process::Command;
         let mut command = Command::new("winetricks");
-        if let Some(envs) = self.env {
-            for (env_name, env_val) in envs {
-                command.env(env_name, env_val);
-            }
+
+        for (env_name, env_val) in self.env.iter() {
+            command.env(env_name, env_val);
         }
+
         command
             .env("WINEPREFIX", wine_prefix)
             .env("WINE", wine_exe)

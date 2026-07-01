@@ -1,13 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 use flora_core::{
-    errors::FloraError,
-    manager::FloraManager,
-    requests::{
-        FloraCreateProtonSeed, FloraCreateSeed, FloraCreateSeedApp, FloraCreateSeedSettings,
-        FloraCreateWineSeed, FloraDeleteSeedApp, FloraRenameSeedApp, FloraSeedAppOperations,
-        FloraUpdateProtonSeed, FloraUpdateSeed, FloraUpdateSeedApp, FloraUpdateWineSeed,
-    },
-    responses::{FloraSeedAppItem, FloraSeedItem, FloraSeedStartMenuItem},
+    errors::FloraError, manager::{FloraManager, FloraSeedListItem}, seed::{FloraProtonSeed, FloraSeed, FloraSeedApp, FloraSeedSettings, FloraSeedType, FloraWineSeed}, start_menu::FloraSeedStartMenuItem,
 };
 use tabled::{
     settings::{
@@ -17,6 +10,7 @@ use tabled::{
     },
     Table, Tabled,
 };
+
 
 /// Manage your Wine and Proton prefixes
 #[derive(Parser)]
@@ -83,9 +77,10 @@ pub struct CreateSeedOpts {
     /// Name of seed
     name: String,
     /// Launcher command for applications
-    #[arg(short = 'c', long, required = false)]
+    #[arg(long, required = false)]
     launcher: Option<String>,
 }
+
 #[derive(Args)]
 #[group()]
 pub struct CreateSeedDefaultOpts {
@@ -396,6 +391,13 @@ pub struct RunOpts {
 #[derive(Tabled)]
 #[tabled(rename_all = "Upper Title Case")]
 pub struct SeedTableRow<'a> {
+    pub seed_name: &'a str,
+    pub seed_type: &'a str,
+}
+
+#[derive(Tabled, Default)]
+#[tabled(rename_all = "Upper Title Case")]
+pub struct SeedTableInfo<'a> {
     pub name: &'a str,
     pub prefix: &'a str,
     pub runtime: &'a str,
@@ -425,28 +427,39 @@ pub struct SeedEnvTableRow<'a> {
     pub value: &'a str,
 }
 
-impl<'a> From<&'a FloraSeedItem> for SeedTableRow<'a> {
-    fn from(item: &'a FloraSeedItem) -> Self {
-        match &item.seed_type {
-            flora_core::responses::FloraSeedTypeItem::Wine(conf) => Self {
-                name: item.name.as_str(),
+impl<'a> From<&'a FloraSeedListItem> for SeedTableRow<'a> {
+    fn from(item: &'a FloraSeedListItem) -> Self {
+        Self {
+            seed_name: &item.seed_name,
+            seed_type: &item.seed_type,
+        }
+    }
+}
+
+impl<'a> From<(&'a str, &'a FloraSeed)> for SeedTableInfo<'a> {
+    fn from(item: (&'a str, &'a FloraSeed)) -> Self {
+        match &item.1.seed_type {
+            FloraSeedType::Wine(conf) => Self {
+                name: item.0,
                 prefix: conf.wine_prefix.as_deref().unwrap_or_default(),
                 runtime: conf.wine_runtime.as_deref().unwrap_or_default(),
                 game_id: "",
                 store: "",
             },
-            flora_core::responses::FloraSeedTypeItem::Proton(conf) => Self {
-                name: item.name.as_str(),
+            FloraSeedType::Proton(conf) => Self {
+                name: item.0,
                 prefix: conf.proton_prefix.as_deref().unwrap_or_default(),
                 runtime: conf.proton_runtime.as_deref().unwrap_or_default(),
                 game_id: conf.game_id.as_deref().unwrap_or_default(),
                 store: conf.store.as_deref().unwrap_or_default(),
             },
+            FloraSeedType::None => Self::default(),
         }
     }
 }
-impl<'a> From<&'a FloraSeedAppItem> for SeedAppTableRow<'a> {
-    fn from(item: &'a FloraSeedAppItem) -> Self {
+
+impl<'a> From<&'a FloraSeedApp> for SeedAppTableRow<'a> {
+    fn from(item: &'a FloraSeedApp) -> Self {
         Self {
             application_name: item.application_name.as_str(),
             application_location: item.application_location.as_str(),
@@ -473,67 +486,105 @@ impl<'a> From<(&'a String, &'a String)> for SeedEnvTableRow<'a> {
 }
 
 fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(), FloraError> {
-    let seed = FloraCreateSeed::WineOptions(FloraCreateWineSeed {
-        settings: Some(FloraCreateSeedSettings {
-            launcher_command: args.seed.launcher.as_deref(),
-        }),
-        default_application: args
-            .default_opts
-            .as_ref()
-            .map(|default_opt| FloraCreateSeedApp {
-                application_name: default_opt.app_name.as_str(),
-                application_location: default_opt.app_location.as_str(),
-                category: default_opt.app_category.as_deref(),
-            }),
-
-        wine_prefix: args.wine_prefix.as_deref(),
-        wine_runner: args.wine_runtime.as_deref(),
-    });
+    let mut seed = FloraSeed::default();
+    seed.seed_type = FloraSeedType::Wine(
+        FloraWineSeed {
+            wine_prefix: args.wine_prefix.clone(),
+            wine_runtime: args.wine_runtime.clone(),
+        }
+    );
+    if let Some(launcher_command) = args.seed.launcher.clone() {
+        seed.settings = Some(
+            Box::from(
+                FloraSeedSettings {
+                    launcher_command: Some(launcher_command)
+                }
+            )
+        )
+    }
+    if let Some(default_application) = &args.default_opts {
+        let app = FloraSeedApp {
+            application_name: default_application.app_name.clone(),
+            application_location: default_application.app_location.clone(),
+            category: default_application.app_category.clone(),
+        };
+        seed.add_app(app)?;
+    }
 
     manager.create_seed(&args.seed.name, &seed)
 }
 
 fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result<(), FloraError> {
-    let seed = FloraCreateSeed::ProtonOptions(FloraCreateProtonSeed {
-        settings: Some(FloraCreateSeedSettings {
-            launcher_command: args.seed.launcher.as_deref(),
-        }),
-        default_application: args
-            .default_opts
-            .as_ref()
-            .map(|default_opt| FloraCreateSeedApp {
-                application_name: default_opt.app_name.as_str(),
-                application_location: default_opt.app_location.as_str(),
-                category: default_opt.app_category.as_deref(),
-            }),
+    let mut seed = FloraSeed::default();
+    seed.seed_type = FloraSeedType::Proton(
+        FloraProtonSeed {
+            proton_prefix: args.proton_prefix.clone(),
+            proton_runtime: args.proton_runtime.clone(),
+            game_id: args.game_id.clone(),
+            store: args.store.clone(),
+        }
+    );
 
-        proton_prefix: args.proton_prefix.as_deref(),
-        proton_runtime: args.proton_runtime.as_deref(),
-        game_id: args.game_id.as_deref(),
-        store: args.store.as_deref(),
-    });
+    if let Some(launcher_command) = args.seed.launcher.clone() {
+        seed.settings = Some(
+            Box::from(
+                FloraSeedSettings {
+                    launcher_command: Some(launcher_command)
+                }
+            )
+        )
+    }
+    if let Some(default_application) = &args.default_opts {
+        let app = FloraSeedApp {
+            application_name: default_application.app_name.clone(),
+            application_location: default_application.app_location.clone(),
+            category: default_application.app_category.clone(),
+        };
+        seed.add_app(app)?;
+    }
 
     manager.create_seed(&args.seed.name, &seed)
 }
 
 fn set_wine_seed(manager: &FloraManager, args: &SetWineOpts) -> Result<(), FloraError> {
-    let seed_opts = FloraUpdateSeed::WineOptions(FloraUpdateWineSeed {
-        wine_prefix: args.wine_prefix.as_deref(),
-        wine_runtime: args.wine_runtime.as_deref(),
-    });
-    manager.update_seed(&args.seed.name, &seed_opts)?;
+    let mut seed = manager.get_seed(&args.seed.name)?;
+
+    if let FloraSeedType::Wine(ref mut wine_settings) = seed.seed_type {
+        if let Some(_) = args.wine_prefix {
+            wine_settings.wine_prefix = args.wine_prefix.clone();
+        }
+        if let Some(_) = args.wine_runtime {
+            wine_settings.wine_runtime = args.wine_runtime.clone();
+        }
+    } else {
+        return Err(FloraError::SeedWrongType(args.seed.name.clone()));
+    }
+    manager.update_seed(&args.seed.name, &seed)?;
+
     Ok(())
 }
 
 fn set_proton_seed(manager: &FloraManager, args: &SetProtonOpts) -> Result<(), FloraError> {
-    let seed_opts = FloraUpdateSeed::ProtonOptions(FloraUpdateProtonSeed {
-        proton_prefix: args.proton_prefix.as_deref(),
-        proton_runtime: args.proton_runtime.as_deref(),
-        game_id: args.game_id.as_deref(),
-        store: args.store.as_deref(),
-    });
+    let mut seed = manager.get_seed(&args.seed.name)?;
 
-    manager.update_seed(&args.seed.name, &seed_opts)?;
+    if let FloraSeedType::Proton(ref mut proton_settings) = seed.seed_type {
+        if let Some(_) = args.proton_prefix {
+            proton_settings.proton_prefix = args.proton_prefix.clone();
+        }
+        if let Some(_) = args.proton_runtime {
+            proton_settings.proton_runtime = args.proton_runtime.clone();
+        }
+        if let Some(_) = args.game_id {
+            proton_settings.game_id = args.game_id.clone();
+        }
+        if let Some(_) = args.store {
+            proton_settings.store = args.store.clone();
+        }
+    } else {
+        return Err(FloraError::SeedWrongType(args.seed.name.clone()));
+    }
+    manager.update_seed(&args.seed.name, &seed)?;
+
     Ok(())
 }
 fn main() -> Result<(), FloraError> {
@@ -568,19 +619,16 @@ fn main() -> Result<(), FloraError> {
                     for seed in seeds {
                         println!(
                             "{} ({})",
-                            seed.name,
-                            match seed.seed_type {
-                                flora_core::responses::FloraSeedTypeItem::Wine(_) => "Wine",
-                                flora_core::responses::FloraSeedTypeItem::Proton(_) => "Proton",
-                            }
+                            seed.seed_name,
+                            seed.seed_type,
                         )
                     }
                 }
                 Ok(())
             }
             SeedCommands::Info(args) => {
-                let seed = manager.show_seed(&args.name)?;
-                let mut seed_table = SeedTableRow::from(&seed);
+                let seed = manager.get_seed(&args.name)?;
+                let mut seed_table = SeedTableInfo::from((args.name.as_str(), &seed));
                 if seed_table.runtime.is_empty() {
                     seed_table.runtime = "(default runtime)";
                 }
@@ -592,25 +640,23 @@ fn main() -> Result<(), FloraError> {
                 ));
                 table.modify(Columns::first(), Alignment::left());
 
+                let env = seed.get_env();
                 println!("{}", table);
                 println!("Environnment variables:");
-                if let None = seed.env {
+                if env.len() == 0 {
                     println!("  No environment variables defined");
-                } else if let Some(env) = seed.env {
-                    if env.len() == 0 {
-                        println!("  No environment variables defined");
-                    } else {
-                        let env_items = env.iter().map(SeedEnvTableRow::from);
+                } else {
+                    let env_items = env.iter().map(SeedEnvTableRow::from);
 
-                        let mut table = Table::new(env_items);
-                        table.with(Style::blank());
-                        table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
-                        table.modify(Columns::first(), Alignment::left());
-                        println!("{}", table);
-                    }
+                    let mut table = Table::new(env_items);
+                    table.with(Style::blank());
+                    table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
+                    table.modify(Columns::first(), Alignment::left());
+                    println!("{}", table);
                 }
                 println!("List of apps:");
-                let table_items = seed.apps.iter().map(SeedAppTableRow::from);
+                let apps = seed.get_apps();
+                let table_items = apps.iter().map(SeedAppTableRow::from);
 
                 let mut table = Table::new(table_items);
                 table.with(Style::blank());
@@ -622,50 +668,58 @@ fn main() -> Result<(), FloraError> {
             }
             SeedCommands::Env(env_opts) => match &env_opts.commands {
                 SeedEnvCommands::List(seed_env_list_opts) => {
-                    let seed = manager.show_seed(&seed_env_list_opts.seed.name)?;
-                    if let None = seed.env {
-                        println!("  No environment variables defined");
-                    } else if let Some(env) = seed.env {
-                        if env.len() == 0 {
-                            println!("  No environment variables defined");
-                        } else {
-                            if seed_env_list_opts.long {
-                                let env_items = env.iter().map(SeedEnvTableRow::from);
+                    let seed = manager.get_seed(&seed_env_list_opts.seed.name)?;
+                    let env = seed.get_env();
 
-                                let mut table = Table::new(env_items);
-                                table.with(Style::blank());
-                                table.with(Colorization::exact(
-                                    [Color::FG_BRIGHT_BLUE],
-                                    Rows::first(),
-                                ));
-                                table.modify(Columns::first(), Alignment::left());
-                                println!("{}", table);
-                            } else {
-                                for seed_env in env {
-                                    println!("{} = {}", seed_env.0, seed_env.1);
-                                }
+                    if env.len() == 0 {
+                        println!("  No environment variables defined");
+                    } else {
+                        if seed_env_list_opts.long {
+                            let env_items = env.iter().map(SeedEnvTableRow::from);
+
+                            let mut table = Table::new(env_items);
+                            table.with(Style::blank());
+                            table.with(Colorization::exact(
+                                [Color::FG_BRIGHT_BLUE],
+                                Rows::first(),
+                            ));
+                            table.modify(Columns::first(), Alignment::left());
+                            println!("{}", table);
+                        } else {
+                            for seed_env in env {
+                                println!("{} = {}", seed_env.0, seed_env.1);
                             }
                         }
                     }
 
                     Ok(())
                 }
-                SeedEnvCommands::Set(seed_env_set_opts) => manager.update_seed_env(
-                    &seed_env_set_opts.seed.name,
-                    &seed_env_set_opts.env_name,
-                    &seed_env_set_opts.env_value,
-                ),
-                SeedEnvCommands::Delete(seed_env_delete_opts) => manager.delete_seed_env(
-                    &seed_env_delete_opts.seed.name,
-                    &seed_env_delete_opts.env_name,
-                ),
+                SeedEnvCommands::Set(seed_env_set_opts) => {
+                    let seed_name = &seed_env_set_opts.seed.name;
+                    let mut seed = manager.get_seed(seed_name)?;
+
+                    seed.update_env(&seed_env_set_opts.env_name, &seed_env_set_opts.env_value);
+                    manager.update_seed(seed_name, &seed)?;
+
+                    Ok(())
+                },
+                SeedEnvCommands::Delete(seed_env_delete_opts) => {
+                    let seed_name = &seed_env_delete_opts.seed.name;
+                    let mut seed = manager.get_seed(seed_name)?;
+
+                    seed.delete_env(&seed_env_delete_opts.env_name);
+                    manager.update_seed(seed_name, &seed)?;
+
+                    Ok(())
+                },
             },
         },
         Commands::App(app_opts) => match &app_opts.commands {
             AppCommands::List(app_list_opts) => {
-                let seed = manager.show_seed(&app_list_opts.seed.name)?;
+                let seed = manager.get_seed(&app_list_opts.seed.name)?;
+                let apps = seed.get_apps();
                 if app_list_opts.long {
-                    let table_items = seed.apps.iter().map(SeedAppTableRow::from);
+                    let table_items = apps.iter().map(SeedAppTableRow::from);
 
                     let mut table = Table::new(table_items);
                     table.with(Style::blank());
@@ -674,41 +728,63 @@ fn main() -> Result<(), FloraError> {
 
                     println!("{}", table);
                 } else {
-                    for app in seed.apps {
+                    for app in apps {
                         println!("{}", app.application_name,)
                     }
                 }
                 Ok(())
             }
-            AppCommands::Add(app_add_opts) => manager.update_seed_apps(
-                &app_add_opts.seed.name,
-                &vec![FloraSeedAppOperations::Add(FloraCreateSeedApp {
-                    application_name: app_add_opts.app_name.as_str(),
-                    application_location: app_add_opts.app_location.as_str(),
-                    category: app_add_opts.app_category.as_deref(),
-                })],
-            ),
-            AppCommands::Update(app_update_opts) => manager.update_seed_apps(
-                &app_update_opts.seed.name,
-                &vec![FloraSeedAppOperations::Update(FloraUpdateSeedApp {
-                    application_name: app_update_opts.app_name.as_str(),
-                    application_location: app_update_opts.app_location.as_deref(),
-                    category: app_update_opts.app_category.as_deref(),
-                })],
-            ),
-            AppCommands::Rename(app_rename_opts) => manager.update_seed_apps(
-                &app_rename_opts.seed.name,
-                &vec![FloraSeedAppOperations::Rename(FloraRenameSeedApp {
-                    old_application_name: app_rename_opts.old_app_name.as_str(),
-                    new_application_name: app_rename_opts.new_app_name.as_str(),
-                })],
-            ),
-            AppCommands::Delete(app_delete_opts) => manager.update_seed_apps(
-                &app_delete_opts.seed.name,
-                &vec![FloraSeedAppOperations::Delete(FloraDeleteSeedApp {
-                    application_name: app_delete_opts.app_name.as_str(),
-                })],
-            ),
+            AppCommands::Add(app_add_opts) => {
+                let seed_name = &app_add_opts.seed.name;
+                let mut seed = manager.get_seed(seed_name)?;
+
+                let new_app = FloraSeedApp {
+                    application_name: app_add_opts.app_name.clone(),
+                    application_location: app_add_opts.app_location.clone(),
+                    category: app_add_opts.app_category.clone(),
+                };
+
+                seed.add_app(new_app)?;
+                manager.update_seed(seed_name, &seed)?;
+
+                Ok(())
+            },
+            AppCommands::Update(app_update_opts) => {
+                let seed_name = &app_update_opts.seed.name;
+                let mut seed = manager.get_seed(seed_name)?;
+
+                let mut app = seed.get_app(&app_update_opts.app_name)?;
+                if let Some(app_location) = app_update_opts.app_location.clone() {
+                    app.application_location = app_location;
+                }
+                if let Some(app_category) = app_update_opts.app_category.clone() {
+                    app.category = Some(app_category);
+                }
+
+                seed.update_app(&app_update_opts.app_name, app)?;
+                manager.update_seed(seed_name, &seed)?;
+
+                Ok(())
+            },
+            AppCommands::Rename(app_rename_opts) => {
+                let seed_name = &app_rename_opts.seed.name;
+                let mut seed = manager.get_seed(seed_name)?;
+
+                seed.rename_app(&app_rename_opts.old_app_name, &app_rename_opts.new_app_name)?;
+                manager.update_seed(seed_name, &seed)?;
+
+                Ok(())
+
+            },
+            AppCommands::Delete(app_delete_opts) => {
+                let seed_name = &app_delete_opts.seed.name;
+                let mut seed = manager.get_seed(seed_name)?;
+
+                seed.delete_app(&app_delete_opts.app_name)?;
+                manager.update_seed(seed_name, &seed)?;
+
+                Ok(())
+            },
             AppCommands::GenerateMenu(app_generate_menu_opts) => manager.create_desktop_entries(
                 app_generate_menu_opts.seed_name.as_deref(),
                 app_generate_menu_opts.app_name.as_deref(),
