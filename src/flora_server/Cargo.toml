@@ -11,9 +11,10 @@ license.workspace = true
 [dependencies]
 directories = "6.0.0"
 flora_core = { version = "0.3.0", path = "../flora_core" }
+log = "0.4.33"
 prost = "0.14.4"
 shlex = "2.0.1"
-tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.52.3", features = ["fs", "macros", "rt-multi-thread", "signal"] }
 tokio-stream = { version = "0.1.18", features = ["net"] }
 tonic = "0.14.6"
 tonic-prost = "0.14.6"
