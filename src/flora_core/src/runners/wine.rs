@@ -77,8 +77,8 @@ impl<'a> FloraWineRunner<'a> {
         };
         debug!("Wine dir: {}", &wine_runtime.to_string_lossy());
 
-        if !fs::exists(&wine_runtime)? {
-            return Err(FloraError::MissingRunner);
+        if !fs::exists(&wine_runtime)?  {
+            return Err(FloraError::MissingRunner(wine_runtime));
         }
         debug!("Wine prefix: {}", wine_prefix.to_string_lossy());
 
@@ -134,9 +134,9 @@ impl<'a> FloraWineRunner<'a> {
         let mut command = if let Some(settings) = self.settings
             && let Some(launcher) = &settings.launcher_command
         {
-            let command_param = shlex::split(launcher).ok_or(FloraError::IncorrectLauncher)?;
+            let command_param = shlex::split(launcher).ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?;
             let (launch_command, launch_args) = (
-                &command_param.first().ok_or(FloraError::IncorrectLauncher)?,
+                &command_param.first().ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?,
                 &command_param[1..],
             );
 
@@ -221,9 +221,9 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
         if let Some(args) = args {
             command.args(args);
         }
-        let mut handle = command.spawn()?;
+        let mut handle = command.spawn().map_err(|e| FloraError::RunnerExecError(e))?;
         if wait {
-            handle.wait()?;
+            handle.wait().map_err(|e| FloraError::RunnerExecError(e))?;
         }
 
         Ok(())
@@ -238,9 +238,9 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             command.stdin(Stdio::null()).stdout(log_out).stderr(log_err);
         }
 
-        let mut handle = command.spawn()?;
+        let mut handle = command.spawn().map_err(|e| FloraError::RunnerExecError(e))?;
         if wait {
-            handle.wait()?;
+            handle.wait().map_err(|e| FloraError::RunnerExecError(e))?;
         }
 
         Ok(())
@@ -307,7 +307,8 @@ Terminal=false",
             desktop_entry_location.to_string_lossy()
         );
 
-        fs::write(desktop_entry_location, desktop_entry)?;
+        fs::write(&desktop_entry_location, &desktop_entry)
+            .map_err(|e| FloraError::DesktopEntryWriteError(desktop_entry_location, e))?;
 
         Ok(())
     }
@@ -332,7 +333,7 @@ Terminal=false",
             }
         }
 
-        Err(FloraError::StartMenuNotFound)
+        Err(FloraError::StartMenuLocationNotFound(menu_name.to_string()))
     }
 
     fn list_start_menu_entries(&self) -> Result<Vec<FloraSeedStartMenuItem>, FloraError> {

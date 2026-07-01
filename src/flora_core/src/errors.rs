@@ -1,101 +1,46 @@
-use std::fmt;
+use std::{fmt, path::PathBuf};
 
 use flora_icon::FloraLinkError;
+use thiserror::Error;
 
-/// Every error that Flora can throw
+#[derive(Error, Debug)]
 pub enum FloraError {
-    /// Unable to find home directory to initialize configuration
+    // Start Menu related errors
+    #[error("Unable to find start menu location for {0}")]
+    StartMenuLocationNotFound(String),
+    #[error("Unable to write desktop entry {0} to {1}")]
+    DesktopEntryWriteError(PathBuf, std::io::Error),
+    #[error("Unable to extract icon: {0}")]
+    IconExtractionError(#[from] FloraLinkError),
+    #[error("Unable to execute in runner: {0}")]
+    RunnerExecError(std::io::Error),
+    #[error("Unable to parse launcher command: {0}")]
+    IncorrectLauncherCommand(String),
+
+    #[error("Unable to access file: {0}")]
+    FileAccessError(#[from] std::io::Error),
+    #[error("User does not have a valid home directory")]
     NoValidHome,
-    /// Seed already exists
-    SeedExists,
-    /// Seed is not found
-    SeedNotFound,
 
-    /// Seed has no default app
-    SeedNoDefaultApp,
-    /// Seed has no specified app
-    SeedNoApp,
-    /// Seed app already exists
-    SeedAppExists,
-
-    /// Incorrect update type on seed
-    SeedUpdateMismatch,
-
-    /// Start Menu entry not found
-    StartMenuNotFound,
-
-    /// Incorrect runner is invoked
-    IncorrectRunner,
-    /// Runner is not found
-    MissingRunner,
-    /// Config for runner is not found
+    #[error("Unable to find runner {0}")]
+    MissingRunner(PathBuf),
+    #[error("Seed runner-specific options not found")]
     MissingRunnerConfig,
 
-    /// Cannot parse launcher command
-    IncorrectLauncher,
+    #[error("Seed not found: {0}")]
+    SeedNotFound(String),
+    #[error("Seed already exists: {0}")]
+    SeedExists(String),
+    #[error("Seed not of the correct type")]
+    SeedOptionsMismatch,
 
-    /// Something wrong when processing icons
-    IconError(FloraLinkError),
+    #[error("Application already exists: {0}")]
+    AppExists(String),
+    #[error("Application not found: {0}")]
+    AppNotFound(String),
 
-    /// Error parsing config
-    ConfigError(toml::de::Error),
-    /// Error saving config
-    ConfigSaveError(toml::ser::Error),
-    /// Error parsing config
-    IoError(std::io::Error),
-}
-
-impl fmt::Debug for FloraError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            // Initializations errors
-            Self::NoValidHome => write!(
-                f,
-                "Cannot read configuration because of invalid home directory"
-            ),
-            // See derrors
-            Self::SeedExists => write!(f, "Seed already exists"),
-            Self::SeedNotFound => write!(f, "Seed does not exist"),
-            Self::SeedNoDefaultApp => write!(f, "Seed does not have a default app"),
-            Self::SeedNoApp => write!(f, "Seed does not have this app"),
-            Self::SeedAppExists => write!(f, "App already exists"),
-            Self::SeedUpdateMismatch => write!(f, "Attempting to update the wrong seed type"),
-            // Start menu errors
-            Self::StartMenuNotFound => write!(f, "Cannot find Start Menu entry"),
-            // Runner errors
-            Self::IncorrectRunner => write!(f, "Incorrect runner has been invoked"),
-            Self::MissingRunner => write!(f, "Cannot find runner"),
-            Self::MissingRunnerConfig => write!(f, "Cannot find config for runner"),
-            // Launcher errors
-            Self::IncorrectLauncher => write!(f, "Cannot parse launcher command"),
-            // Misc errors
-            Self::IconError(err) => write!(f, "There was a problem processing icons: {}", err),
-            Self::ConfigError(err) => write!(f, "Config read error: {}", err),
-            Self::ConfigSaveError(err) => write!(f, "Config save error: {}", err),
-            Self::IoError(err) => write!(f, "IO error: {}", err),
-        }
-    }
-}
-
-impl From<toml::de::Error> for FloraError {
-    fn from(value: toml::de::Error) -> Self {
-        Self::ConfigError(value)
-    }
-}
-
-impl From<toml::ser::Error> for FloraError {
-    fn from(value: toml::ser::Error) -> Self {
-        Self::ConfigSaveError(value)
-    }
-}
-
-impl From<std::io::Error> for FloraError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IoError(value)
-    }
-}
-impl From<FloraLinkError> for FloraError {
-    fn from(value: FloraLinkError) -> Self {
-        Self::IconError(value)
-    }
+    #[error("Error parsing configuration: {0}")]
+    ConfigError(#[from] toml::de::Error),
+    #[error("Error saving configuration: {0}")]
+    ConfigSaveError(#[from] toml::ser::Error),
 }

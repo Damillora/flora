@@ -61,7 +61,7 @@ impl FloraManager {
     /// Creates a new Flora seed
     pub fn create_seed(&self, name: &str, seed_opts: &FloraCreateSeed) -> Result<(), FloraError> {
         if self.is_seed_exists(name)? {
-            return Err(FloraError::SeedExists);
+            return Err(FloraError::SeedExists(name.to_string()));
         }
 
         let new_seed_location = self.seed_path(name);
@@ -79,7 +79,7 @@ impl FloraManager {
     /// Edit seed
     pub fn update_seed(&self, name: &str, upd_data: &FloraUpdateSeed) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed_location = self.seed_path(name);
@@ -101,7 +101,7 @@ impl FloraManager {
         env_value: &str,
     ) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed_location = self.seed_path(name);
@@ -126,7 +126,7 @@ impl FloraManager {
     /// Edit seed env
     pub fn delete_seed_env(&self, name: &str, env_name: &str) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed_location = self.seed_path(name);
@@ -155,7 +155,7 @@ impl FloraManager {
         upd_data: &Vec<FloraSeedAppOperations>,
     ) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed_location = self.seed_path(name);
@@ -175,7 +175,7 @@ impl FloraManager {
         name: &str,
     ) -> Result<Vec<FloraSeedStartMenuItem>, FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed = self.read_seed(name)?;
@@ -187,7 +187,7 @@ impl FloraManager {
     /// Creates an app for seed from Start Menu item
     pub fn create_start_menu_app(&self, name: &str, menu_name: &str) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed = self.read_seed(name)?;
@@ -206,7 +206,7 @@ impl FloraManager {
     /// Deletes new Flora seed
     pub fn delete_seed(&self, name: &str) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed_location = self.seed_path(name);
@@ -227,7 +227,7 @@ impl FloraManager {
             .map(|file_path| -> Result<PathBuf, FloraError> { Ok(file_path?.path()) })
             .map(|seed_config_path| -> Result<FloraSeedItem, FloraError> {
                 let file_path = seed_config_path?;
-                let file_stem = file_path.file_stem().ok_or(FloraError::SeedNotFound)?;
+                let file_stem = file_path.file_stem().unwrap_or_default();
                 let name = String::from(file_stem.to_string_lossy());
 
                 let config = self.read_seed(&name)?;
@@ -240,7 +240,7 @@ impl FloraManager {
     /// Deletes new Flora seed
     pub fn show_seed(&self, name: &str) -> Result<FloraSeedItem, FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed_config = self.read_seed(name)?;
@@ -257,7 +257,7 @@ impl FloraManager {
         wait: bool,
     ) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed = self.read_seed(name)?;
@@ -275,7 +275,7 @@ impl FloraManager {
         wait: bool,
     ) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed = self.read_seed(name)?;
@@ -293,7 +293,7 @@ impl FloraManager {
         wait: bool,
     ) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
         let seed = self.read_seed(name)?;
 
@@ -312,7 +312,7 @@ impl FloraManager {
             let runner = runners::create_runner(name, &self.flora_dirs, &self.config, &seed)?;
             runner.run_executable(&new_args, quiet, wait)
         } else {
-            Err(FloraError::SeedNoApp)
+            Err(FloraError::AppNotFound(String::from(app_name.unwrap_or("default"))))
         }
     }
 
@@ -325,7 +325,7 @@ impl FloraManager {
         wait: bool,
     ) -> Result<(), FloraError> {
         if !self.is_seed_exists(name)? {
-            return Err(FloraError::SeedNotFound);
+            return Err(FloraError::SeedNotFound(name.to_string()));
         }
 
         let seed = self.read_seed(name)?;
@@ -350,10 +350,9 @@ impl FloraManager {
 
         let mut files = read_dir(&seed_dir)?
             .map(|seed_config_path| {
-                let path = seed_config_path
-                    .map_err(|_| FloraError::SeedNotFound)?
+                let path = seed_config_path?
                     .path();
-                let file_stem = path.file_stem().ok_or(FloraError::SeedNotFound)?;
+                let file_stem = path.file_stem().unwrap_or_default();
                 let name = file_stem.to_string_lossy();
                 let seed = self.read_seed(&name)?;
 

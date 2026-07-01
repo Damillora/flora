@@ -101,7 +101,7 @@ impl FloraSeed {
 
                 Ok(())
             }
-            _ => Err(FloraError::SeedUpdateMismatch),
+            _ => Err(FloraError::SeedOptionsMismatch),
         }
     }
 
@@ -119,7 +119,7 @@ impl FloraSeed {
                     {
                         self.apps.push(FloraSeedApp::from(flora_create_seed_app));
                     } else {
-                        return Err(FloraError::SeedAppExists);
+                        return Err(FloraError::AppExists(flora_create_seed_app.application_name.to_string()));
                     }
                 }
                 FloraSeedAppOperations::Update(flora_update_seed_app) => {
@@ -128,7 +128,7 @@ impl FloraSeed {
                         .iter()
                         .position(|i| i.application_name == flora_update_seed_app.application_name)
                     {
-                        let app = self.apps.get_mut(idx).ok_or(FloraError::SeedNoApp)?;
+                        let app = self.apps.get_mut(idx).ok_or(FloraError::AppNotFound(flora_update_seed_app.application_name.to_string()))?;
 
                         if let Some(app_location) = flora_update_seed_app.application_location {
                             app.application_location = String::from(app_location);
@@ -138,19 +138,20 @@ impl FloraSeed {
                             app.category = Some(String::from(app_category));
                         }
                     } else {
-                        return Err(FloraError::SeedNoApp);
+                        return Err(FloraError::AppNotFound(flora_update_seed_app.application_name.to_string()));
                     }
                 }
                 FloraSeedAppOperations::Rename(flora_rename_seed_app) => {
                     if let Some(idx) = self.apps.iter().position(|i| {
                         i.application_name == flora_rename_seed_app.old_application_name
                     }) {
-                        let app = self.apps.get_mut(idx).ok_or(FloraError::SeedNoApp)?;
-
-                        app.application_name =
-                            String::from(flora_rename_seed_app.new_application_name);
+                        if let Some(app) = self.apps.get_mut(idx)
+                        {
+                            app.application_name =
+                                String::from(flora_rename_seed_app.new_application_name);
+                        }
                     } else {
-                        return Err(FloraError::SeedNoApp);
+                        return Err(FloraError::AppNotFound(flora_rename_seed_app.old_application_name.to_string()));
                     }
                 }
                 FloraSeedAppOperations::Delete(flora_delete_seed_app) => {
@@ -161,7 +162,7 @@ impl FloraSeed {
                     {
                         self.apps.remove(idx);
                     } else {
-                        return Err(FloraError::SeedNoApp);
+                        return Err(FloraError::AppNotFound(flora_delete_seed_app.application_name.to_string()));
                     }
                 }
             }

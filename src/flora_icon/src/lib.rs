@@ -8,6 +8,7 @@ use std::{
 use lnk::encoding::WINDOWS_1252;
 use log::debug;
 use pelite::{FileMap, pe32, pe64, resources::FindError};
+use thiserror::Error;
 use xdg_mime::SharedMimeInfo;
 
 pub enum FloraLink {
@@ -29,7 +30,7 @@ pub fn get_icon_name_from_path(lnk_location: &Path) -> Result<String, FloraLinkE
         .unwrap_or(String::from("applications-other")))
 }
 
-pub fn find_lnk_exe_location(lnk_location: &PathBuf) -> Result<FloraLink, FloraLinkError> {
+pub fn find_lnk_exe_location(lnk_location: &Path) -> Result<FloraLink, FloraLinkError> {
     debug!("Inferring exe or lnk: {}", lnk_location.to_string_lossy());
 
     let is_exe = infer::app::is_exe(&fs::read(lnk_location)?);
@@ -48,7 +49,7 @@ pub fn find_lnk_exe_location(lnk_location: &PathBuf) -> Result<FloraLink, FloraL
             Ok(FloraLink::WindowsExe(
                 shortcut
                     .link_target()
-                    .ok_or(FloraLinkError::LinkNoTarget)?
+                    .ok_or(FloraLinkError::LinkNoTarget(lnk_location.to_path_buf()))?
                     .trim_matches(char::from(0)) // Clean up null values
                     .to_string(),
             ))
@@ -59,8 +60,8 @@ pub fn find_lnk_exe_location(lnk_location: &PathBuf) -> Result<FloraLink, FloraL
 }
 
 pub fn extract_icon_from_ico(
-    icon_path: &PathBuf,
-    ico_location: &PathBuf,
+    icon_path: &Path,
+    ico_location: &Path,
 ) -> Result<(), FloraLinkError> {
     debug!("ICO location: {}", ico_location.to_string_lossy());
 
@@ -72,7 +73,7 @@ pub fn extract_icon_from_ico(
         .entries()
         .iter()
         .max_by(|a, b| a.width().cmp(&b.width()))
-        .ok_or(FloraLinkError::NoIcons)?
+        .ok_or(FloraLinkError::IconNotInIcoFile(ico_location.to_path_buf()))?
         .decode()?;
     let file = std::fs::File::create(icon_path)?;
     image.write_png(file)?;
@@ -80,8 +81,8 @@ pub fn extract_icon_from_ico(
     Ok(())
 }
 pub fn extract_icon_from_exe(
-    icon_path: &PathBuf,
-    exe_location: &PathBuf,
+    icon_path: &Path,
+    exe_location: &Path,
 ) -> Result<bool, FloraLinkError> {
     // Extract main icon from executable
 
@@ -98,7 +99,7 @@ pub fn extract_icon_from_exe(
                 .icons()
                 .filter_map(|e| e.ok())
                 .next()
-                .ok_or(FloraLinkError::IconNotFound)?;
+                .ok_or(FloraLinkError::IconNotInExecutable(exe_location.to_path_buf()))?;
 
             // Get ICO resource
             let mut ico_file = vec![];
@@ -113,7 +114,7 @@ pub fn extract_icon_from_exe(
                 .entries()
                 .iter()
                 .max_by(|a, b| a.width().cmp(&b.width()))
-                .ok_or(FloraLinkError::IconNotFound)?
+                .ok_or(FloraLinkError::IconNotInExecutable(exe_location.to_path_buf()))?
                 .decode()?;
             let file = std::fs::File::create(icon_path)?;
             image.write_png(file)?;
@@ -131,7 +132,7 @@ pub fn extract_icon_from_exe(
                 .icons()
                 .filter_map(|e| e.ok())
                 .next()
-                .ok_or(FloraLinkError::IconNotFound)?;
+                .ok_or(FloraLinkError::IconNotInExecutable(exe_location.to_path_buf()))?;
 
             // Get ICO resource
             let mut ico_file = vec![];
@@ -154,44 +155,18 @@ pub fn extract_icon_from_exe(
     Ok(false)
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum FloraLinkError {
-    ExeParseError(pelite::Error),
-    ExeResourceError(FindError),
-    LinkNoTarget,
-    IconNotFound,
-    NoIcons,
-    FileError(std::io::Error),
-}
-impl From<pelite::Error> for FloraLinkError {
-    fn from(value: pelite::Error) -> Self {
-        Self::ExeParseError(value)
-    }
-}
-impl From<FindError> for FloraLinkError {
-    fn from(value: FindError) -> Self {
-        Self::ExeResourceError(value)
-    }
-}
-impl From<std::io::Error> for FloraLinkError {
-    fn from(value: std::io::Error) -> Self {
-        Self::FileError(value)
-    }
-}
-
-impl Display for FloraLinkError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self {
-            FloraLinkError::ExeParseError(err) => {
-                write!(f, "Unable to inspect executable: {}", err)
-            }
-            FloraLinkError::ExeResourceError(err) => {
-                write!(f, "Unable to inspect resources: {}", err)
-            }
-            FloraLinkError::LinkNoTarget => write!(f, "Cannot find target of shortcut"),
-            FloraLinkError::IconNotFound => write!(f, "Unable to find icon"),
-            FloraLinkError::NoIcons => write!(f, "No icons are found"),
-            FloraLinkError::FileError(err) => write!(f, "Unable to complete the action: {}", err),
-        }
-    }
+    #[error("Cannot parse executable file: {0}")]
+    ExeParseError(#[from] pelite::Error),
+    #[error("Cannot find executable resource: {0}")]
+    ExeResourceError(#[from] FindError),
+    #[error("Unable to find target of link {0}")]
+    LinkNoTarget(PathBuf),
+    #[error("Unable to find icon in executable {0}")]
+    IconNotInExecutable(PathBuf),
+    #[error("Unable to find icon in ico file {0}")]
+    IconNotInIcoFile(PathBuf),
+    #[error("Unable to edit file: {0}")]
+    FileError(#[from] std::io::Error),
 }
