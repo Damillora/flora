@@ -1,7 +1,7 @@
 use flora_core::{manager::FloraManager, seed::{FloraProtonSeed, FloraSeed, FloraSeedType, FloraWineSeed}};
 use tonic::{Request, Response, Status};
 
-use crate::proto::{self, flora_manager_service_server::FloraManagerService};
+use crate::proto::{self, ListSeedItem, ListSeedRequest, ListSeedResponse, SeedType::{Proton, Unspecified}, flora_manager_service_server::FloraManagerService};
 
 pub struct FloraManagerServiceImpl
 {
@@ -18,38 +18,80 @@ impl FloraManagerServiceImpl {
 
 #[tonic::async_trait]
 impl FloraManagerService for FloraManagerServiceImpl {
-    async fn create_wine_seed(&self, request: Request<proto::CreateWineSeedRequest>) -> Result<Response<proto::CreateWineSeedResponse>, Status>
+    async fn create_seed(&self, request: Request<proto::CreateSeedRequest>) -> Result<Response<proto::CreateSeedResponse>, Status>
     {
         let req = request.into_inner();
         let mut new_seed = FloraSeed::default();
-        new_seed.seed_type = FloraSeedType::Wine(
-                FloraWineSeed {
-                    wine_prefix: Some(req.prefix),
-                    wine_runtime: Some(req.runtime),
-                }
-            );
-
-        self.manager.create_seed(&req.seed_name, &new_seed)
-            .map_err(|e| Status::new(tonic::Code::InvalidArgument, e.to_string()))?;
-
-        Ok(Response::new(proto::CreateWineSeedResponse{}))
-    }
-    async fn create_proton_seed(&self, request: Request<proto::CreateProtonSeedRequest>) -> Result<Response<proto::CreateProtonSeedResponse>, Status>
-    {
-        let req = request.into_inner();
-        let mut new_seed = FloraSeed::default();
-        new_seed.seed_type  = FloraSeedType::Proton(
+        new_seed.seed_type = match proto::SeedType::try_from(req.seed_type) {
+            Ok(proto::SeedType::Wine) => FloraSeedType::Wine(
+                    FloraWineSeed {
+                        wine_prefix: req.prefix,
+                        wine_runtime: req.runtime,
+                    }
+                ),
+            Ok(Proton) => FloraSeedType::Proton(
                 FloraProtonSeed {
-                    proton_prefix: Some(req.prefix),
-                    proton_runtime: Some(req.runtime),
-                    game_id: Some(req.game_id),
-                    store: Some(req.game_store),
+                    proton_prefix: req.prefix,
+                    proton_runtime: req.runtime,
+                    game_id: req.game_id,
+                    store: req.game_store
                 }
-            );
+            ),
+            Ok(Unspecified) | Err(_) => {
+                return Err(Status::new(tonic::Code::InvalidArgument, "Invalid seed type"));
+            }
+        };
 
         self.manager.create_seed(&req.seed_name, &new_seed)
             .map_err(|e| Status::new(tonic::Code::InvalidArgument, e.to_string()))?;
 
-        Ok(Response::new(proto::CreateProtonSeedResponse{}))
+        Ok(Response::new(proto::CreateSeedResponse{}))
+    }
+
+    async fn update_seed(&self, request: Request<proto::UpdateSeedRequest>) -> Result<Response<proto::UpdateSeedResponse>,Status>
+    {
+        let req = request.into_inner();
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(|e| Status::new(tonic::Code::InvalidArgument, e.to_string()))?;
+        match seed.seed_type {
+            FloraSeedType::Wine(ref mut wine_settings) => {
+                if req.prefix.is_some() {
+                    wine_settings.wine_prefix = req.prefix.clone();
+                }
+                if req.runtime.is_some() {
+                    wine_settings.wine_runtime = req.runtime.clone();
+                }
+            },
+            FloraSeedType::Proton(ref mut proton_settings) => {
+                if req.prefix.is_some() {
+                    proton_settings.proton_prefix = req.prefix.clone();
+                }
+                if req.runtime.is_some() {
+                    proton_settings.proton_runtime = req.runtime.clone();
+                }
+                if req.game_id.is_some() {
+                    proton_settings.game_id = req.game_id.clone();
+                }
+                if req.game_store.is_some() {
+                    proton_settings.store = req.game_store.clone();
+                }
+            },
+            FloraSeedType::None => return Err(Status::new(tonic::Code::InvalidArgument, "Seed is not valid")),
+        };
+        self.manager.update_seed(&req.seed_name, &seed).map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+
+        Ok(Response::new(proto::UpdateSeedResponse{}))
+    }
+
+    async fn list_seed(&self, _: Request<ListSeedRequest>) -> Result<Response<ListSeedResponse>, Status>
+    {
+        let seeds = self.manager.list_seed().map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+
+        let mut response = ListSeedResponse::default();
+        response.seeds = seeds.iter().map(|e| ListSeedItem {
+            seed_name: e.seed_name.clone(),
+            seed_type: e.seed_type.clone()
+        }).collect();
+
+        Ok(Response::new(response))
     }
 }
