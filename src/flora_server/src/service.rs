@@ -1,5 +1,3 @@
-use std::string;
-
 use flora_core::{errors::FloraError, manager::FloraManager, seed::{FloraProtonSeed, FloraSeed, FloraSeedApp, FloraSeedType, FloraWineSeed}};
 use tonic::{Request, Response, Status};
 
@@ -107,13 +105,12 @@ impl FloraManagerService for FloraManagerServiceImpl {
     {
         let seeds = self.manager.list_seed().map_err(internal_error)?;
 
-        let mut response = ListSeedResponse::default();
-        response.seeds = seeds.iter().map(|e| ListSeedItem {
-            seed_name: e.seed_name.clone(),
-            seed_type: e.seed_type.clone()
-        }).collect();
-
-        Ok(Response::new(response))
+        Ok(Response::new(ListSeedResponse {
+            seeds: seeds.iter().map(|e| ListSeedItem {
+                seed_name: e.seed_name.clone(),
+                seed_type: e.seed_type.clone()
+            }).collect()
+        }))
     }
 
     async fn run_config(&self, request: Request<RunConfigRequest>) -> Result<Response<RunConfigResponse>, Status>
@@ -219,7 +216,7 @@ impl FloraManagerService for FloraManagerServiceImpl {
                 env_value: t.1.clone(),
             }).collect();
 
-        Ok(Response::new(ListEnvironmentResponse { items: items }))
+        Ok(Response::new(ListEnvironmentResponse { items }))
     }
 
     async fn set_environment(&self, request: Request<SetEnvironmentRequest>) -> Result<Response<SetEnvironmentResponse>, Status>
