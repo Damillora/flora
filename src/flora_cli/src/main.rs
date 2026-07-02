@@ -1,16 +1,20 @@
 use clap::{Args, Parser, Subcommand};
 use flora_core::{
-    errors::FloraError, manager::{FloraManager, FloraSeedListItem}, seed::{FloraProtonSeed, FloraSeed, FloraSeedApp, FloraSeedSettings, FloraSeedType, FloraWineSeed}, start_menu::FloraSeedStartMenuItem,
+    errors::FloraError,
+    manager::{FloraManager, FloraSeedListItem},
+    seed::{
+        FloraProtonSeed, FloraSeed, FloraSeedApp, FloraSeedSettings, FloraSeedType, FloraWineSeed,
+    },
+    start_menu::FloraSeedStartMenuItem,
 };
 use tabled::{
+    Table, Tabled,
     settings::{
+        Alignment, Color, Style,
         object::{Columns, Rows},
         themes::Colorization,
-        Alignment, Color, Style,
     },
-    Table, Tabled,
 };
-
 
 /// Manage your Wine and Proton prefixes
 #[derive(Parser)]
@@ -487,20 +491,14 @@ impl<'a> From<(&'a String, &'a String)> for SeedEnvTableRow<'a> {
 
 fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(), FloraError> {
     let mut seed = FloraSeed::default();
-    seed.seed_type = FloraSeedType::Wine(
-        FloraWineSeed {
-            wine_prefix: args.wine_prefix.clone(),
-            wine_runtime: args.wine_runtime.clone(),
-        }
-    );
+    seed.seed_type = FloraSeedType::Wine(FloraWineSeed {
+        wine_prefix: args.wine_prefix.clone(),
+        wine_runtime: args.wine_runtime.clone(),
+    });
     if let Some(launcher_command) = args.seed.launcher.clone() {
-        seed.settings = Some(
-            Box::from(
-                FloraSeedSettings {
-                    launcher_command: Some(launcher_command)
-                }
-            )
-        )
+        seed.settings = Some(Box::from(FloraSeedSettings {
+            launcher_command: Some(launcher_command),
+        }))
     }
     if let Some(default_application) = &args.default_opts {
         let app = FloraSeedApp {
@@ -516,23 +514,17 @@ fn create_wine_seed(manager: &FloraManager, args: &CreateWineOpts) -> Result<(),
 
 fn create_proton_seed(manager: &FloraManager, args: &CreateProtonOpts) -> Result<(), FloraError> {
     let mut seed = FloraSeed::default();
-    seed.seed_type = FloraSeedType::Proton(
-        FloraProtonSeed {
-            proton_prefix: args.proton_prefix.clone(),
-            proton_runtime: args.proton_runtime.clone(),
-            game_id: args.game_id.clone(),
-            store: args.store.clone(),
-        }
-    );
+    seed.seed_type = FloraSeedType::Proton(FloraProtonSeed {
+        proton_prefix: args.proton_prefix.clone(),
+        proton_runtime: args.proton_runtime.clone(),
+        game_id: args.game_id.clone(),
+        store: args.store.clone(),
+    });
 
     if let Some(launcher_command) = args.seed.launcher.clone() {
-        seed.settings = Some(
-            Box::from(
-                FloraSeedSettings {
-                    launcher_command: Some(launcher_command)
-                }
-            )
-        )
+        seed.settings = Some(Box::from(FloraSeedSettings {
+            launcher_command: Some(launcher_command),
+        }))
     }
     if let Some(default_application) = &args.default_opts {
         let app = FloraSeedApp {
@@ -617,11 +609,7 @@ fn main() -> Result<(), FloraError> {
                     println!("{}", table);
                 } else {
                     for seed in seeds {
-                        println!(
-                            "{} ({})",
-                            seed.seed_name,
-                            seed.seed_type,
-                        )
+                        println!("{} ({})", seed.seed_name, seed.seed_type,)
                     }
                 }
                 Ok(())
@@ -679,10 +667,7 @@ fn main() -> Result<(), FloraError> {
 
                             let mut table = Table::new(env_items);
                             table.with(Style::blank());
-                            table.with(Colorization::exact(
-                                [Color::FG_BRIGHT_BLUE],
-                                Rows::first(),
-                            ));
+                            table.with(Colorization::exact([Color::FG_BRIGHT_BLUE], Rows::first()));
                             table.modify(Columns::first(), Alignment::left());
                             println!("{}", table);
                         } else {
@@ -702,7 +687,7 @@ fn main() -> Result<(), FloraError> {
                     manager.update_seed(seed_name, &seed)?;
 
                     Ok(())
-                },
+                }
                 SeedEnvCommands::Delete(seed_env_delete_opts) => {
                     let seed_name = &seed_env_delete_opts.seed.name;
                     let mut seed = manager.get_seed(seed_name)?;
@@ -711,7 +696,7 @@ fn main() -> Result<(), FloraError> {
                     manager.update_seed(seed_name, &seed)?;
 
                     Ok(())
-                },
+                }
             },
         },
         Commands::App(app_opts) => match &app_opts.commands {
@@ -748,7 +733,7 @@ fn main() -> Result<(), FloraError> {
                 manager.update_seed(seed_name, &seed)?;
 
                 Ok(())
-            },
+            }
             AppCommands::Update(app_update_opts) => {
                 let seed_name = &app_update_opts.seed.name;
                 let mut seed = manager.get_seed(seed_name)?;
@@ -765,7 +750,7 @@ fn main() -> Result<(), FloraError> {
                 manager.update_seed(seed_name, &seed)?;
 
                 Ok(())
-            },
+            }
             AppCommands::Rename(app_rename_opts) => {
                 let seed_name = &app_rename_opts.seed.name;
                 let mut seed = manager.get_seed(seed_name)?;
@@ -774,8 +759,7 @@ fn main() -> Result<(), FloraError> {
                 manager.update_seed(seed_name, &seed)?;
 
                 Ok(())
-
-            },
+            }
             AppCommands::Delete(app_delete_opts) => {
                 let seed_name = &app_delete_opts.seed.name;
                 let mut seed = manager.get_seed(seed_name)?;
@@ -784,7 +768,7 @@ fn main() -> Result<(), FloraError> {
                 manager.update_seed(seed_name, &seed)?;
 
                 Ok(())
-            },
+            }
             AppCommands::GenerateMenu(app_generate_menu_opts) => manager.create_desktop_entries(
                 app_generate_menu_opts.seed_name.as_deref(),
                 app_generate_menu_opts.app_name.as_deref(),

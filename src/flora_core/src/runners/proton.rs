@@ -1,5 +1,8 @@
 use std::{
-    collections::BTreeMap, env, fs, path::{Path, PathBuf}, process::{Command, Stdio},
+    collections::BTreeMap,
+    env, fs,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
 };
 
 use flora_icon::FloraLink;
@@ -7,7 +10,13 @@ use log::{debug, info};
 use walkdir::WalkDir;
 
 use crate::{
-    config::FloraConfig, dirs::FloraDirs, errors::FloraError, runners::FloraRunner, seed::{FloraProtonSeed, FloraSeedApp, FloraSeedSettings}, start_menu::FloraSeedStartMenuItem, winepath,
+    config::FloraConfig,
+    dirs::FloraDirs,
+    errors::FloraError,
+    runners::FloraRunner,
+    seed::{FloraProtonSeed, FloraSeedApp, FloraSeedSettings},
+    start_menu::FloraSeedStartMenuItem,
+    winepath,
 };
 
 pub struct FloraProtonRunner<'a> {
@@ -69,9 +78,7 @@ impl<'a> FloraProtonRunner<'a> {
             // Use prefix defined by seed.
             if Path::new(&path).is_relative() {
                 // Prefix is relative to wine prefix location
-                let mut new_path = PathBuf::from(
-                    config.proton.proton_prefix_location.clone(),
-                );
+                let mut new_path = PathBuf::from(config.proton.proton_prefix_location.clone());
                 new_path.push(path);
 
                 new_path
@@ -79,7 +86,7 @@ impl<'a> FloraProtonRunner<'a> {
                 // Prefix is absolute
                 PathBuf::from(path)
             }
-        } else  {
+        } else {
             // Prefix is not defined in seed, but there is a default prefix defined globally.
             // Use default prefix from global configuration.
             PathBuf::from(&config.proton.default_proton_prefix)
@@ -89,8 +96,7 @@ impl<'a> FloraProtonRunner<'a> {
             // Proton runtime is defined in seed.
             // Use Proton runtime defined in seed.
             find_proton_tool(dirs, runner)?
-        } else if let Some(default_proton_runtime) = &config.proton.default_proton_runtime
-        {
+        } else if let Some(default_proton_runtime) = &config.proton.default_proton_runtime {
             // Proton runtime is not defined in seed, but defined globally.
             // Use Proton runtime defined in global configuration.
             find_proton_tool(dirs, default_proton_runtime)?
@@ -163,9 +169,12 @@ impl<'a> FloraProtonRunner<'a> {
         let mut command = if let Some(settings) = self.settings
             && let Some(launcher) = &settings.launcher_command
         {
-            let command_param = shlex::split(launcher).ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?;
+            let command_param = shlex::split(launcher)
+                .ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?;
             let (launch_command, launch_args) = (
-                &command_param.first().ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?,
+                &command_param
+                    .first()
+                    .ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?,
                 &command_param[1..],
             );
 

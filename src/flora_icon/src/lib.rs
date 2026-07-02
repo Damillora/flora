@@ -58,10 +58,7 @@ pub fn find_lnk_exe_location(lnk_location: &Path) -> Result<FloraLink, FloraLink
     }
 }
 
-pub fn extract_icon_from_ico(
-    icon_path: &Path,
-    ico_location: &Path,
-) -> Result<(), FloraLinkError> {
+pub fn extract_icon_from_ico(icon_path: &Path, ico_location: &Path) -> Result<(), FloraLinkError> {
     debug!("ICO location: {}", ico_location.to_string_lossy());
 
     let file = std::fs::File::open(ico_location)?;
@@ -98,7 +95,9 @@ pub fn extract_icon_from_exe(
                 .icons()
                 .filter_map(|e| e.ok())
                 .next()
-                .ok_or(FloraLinkError::IconNotInExecutable(exe_location.to_path_buf()))?;
+                .ok_or(FloraLinkError::IconNotInExecutable(
+                    exe_location.to_path_buf(),
+                ))?;
 
             // Get ICO resource
             let mut ico_file = vec![];
@@ -113,7 +112,9 @@ pub fn extract_icon_from_exe(
                 .entries()
                 .iter()
                 .max_by(|a, b| a.width().cmp(&b.width()))
-                .ok_or(FloraLinkError::IconNotInExecutable(exe_location.to_path_buf()))?
+                .ok_or(FloraLinkError::IconNotInExecutable(
+                    exe_location.to_path_buf(),
+                ))?
                 .decode()?;
             let file = std::fs::File::create(icon_path)?;
             image.write_png(file)?;
@@ -131,7 +132,9 @@ pub fn extract_icon_from_exe(
                 .icons()
                 .filter_map(|e| e.ok())
                 .next()
-                .ok_or(FloraLinkError::IconNotInExecutable(exe_location.to_path_buf()))?;
+                .ok_or(FloraLinkError::IconNotInExecutable(
+                    exe_location.to_path_buf(),
+                ))?;
 
             // Get ICO resource
             let mut ico_file = vec![];

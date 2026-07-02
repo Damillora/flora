@@ -1,4 +1,4 @@
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
 use flora_icon::FloraLinkError;
 use thiserror::Error;

@@ -10,7 +10,13 @@ use log::{debug, info};
 use walkdir::WalkDir;
 
 use crate::{
-    config::FloraConfig, dirs::FloraDirs, errors::FloraError, runners::FloraRunner, seed::{FloraSeedApp, FloraSeedSettings, FloraWineSeed}, start_menu::FloraSeedStartMenuItem, winepath,
+    config::FloraConfig,
+    dirs::FloraDirs,
+    errors::FloraError,
+    runners::FloraRunner,
+    seed::{FloraSeedApp, FloraSeedSettings, FloraWineSeed},
+    start_menu::FloraSeedStartMenuItem,
+    winepath,
 };
 
 pub struct FloraWineRunner<'a> {
@@ -63,7 +69,7 @@ impl<'a> FloraWineRunner<'a> {
         };
         debug!("Wine dir: {}", &wine_runtime.to_string_lossy());
 
-        if !fs::exists(&wine_runtime)?  {
+        if !fs::exists(&wine_runtime)? {
             return Err(FloraError::MissingRunner(wine_runtime));
         }
         debug!("Wine prefix: {}", wine_prefix.to_string_lossy());
@@ -120,9 +126,12 @@ impl<'a> FloraWineRunner<'a> {
         let mut command = if let Some(settings) = self.settings
             && let Some(launcher) = &settings.launcher_command
         {
-            let command_param = shlex::split(launcher).ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?;
+            let command_param = shlex::split(launcher)
+                .ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?;
             let (launch_command, launch_args) = (
-                &command_param.first().ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?,
+                &command_param
+                    .first()
+                    .ok_or(FloraError::IncorrectLauncherCommand(launcher.clone()))?,
                 &command_param[1..],
             );
 

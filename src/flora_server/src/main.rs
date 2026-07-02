@@ -1,10 +1,16 @@
 use directories::BaseDirs;
 use flora_core::{errors::FloraError, manager::FloraManager};
-use tokio::{net::UnixListener, signal::{self}};
+use tokio::{
+    net::UnixListener,
+    signal::{self},
+};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
 
-use crate::{proto::flora_manager_service_server::FloraManagerServiceServer, service::FloraManagerServiceImpl};
+use crate::{
+    proto::flora_manager_service_server::FloraManagerServiceServer,
+    service::FloraManagerServiceImpl,
+};
 
 /// Protobuf defs
 pub mod proto;
@@ -14,7 +20,10 @@ pub mod service;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let base_dirs = BaseDirs::new().ok_or(FloraError::NoValidHome)?;
-    let mut uds_socket_path = base_dirs.runtime_dir().ok_or(FloraError::NoValidHome)?.to_path_buf();
+    let mut uds_socket_path = base_dirs
+        .runtime_dir()
+        .ok_or(FloraError::NoValidHome)?
+        .to_path_buf();
     uds_socket_path.push("flora-server.sock");
 
     log::info!("Establishing socket...");
@@ -30,9 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::info!("Flora gRPC Server is running!");
     Server::builder()
         .add_service(FloraManagerServiceServer::new(greeter))
-        .serve_with_incoming_shutdown(incoming, async {
-            signal.await.unwrap()
-        })
+        .serve_with_incoming_shutdown(incoming, async { signal.await.unwrap() })
         .await?;
 
     log::info!("Cleaning up...");

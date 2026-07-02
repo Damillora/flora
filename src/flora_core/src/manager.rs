@@ -7,7 +7,13 @@ use directories::ProjectDirs;
 use log::debug;
 
 use crate::{
-    config::FloraConfig, desktop, dirs::FloraDirs, errors::FloraError, runners, seed::{FloraSeed, FloraSeedApp, FloraSeedType}, start_menu::FloraSeedStartMenuItem,
+    config::FloraConfig,
+    desktop,
+    dirs::FloraDirs,
+    errors::FloraError,
+    runners,
+    seed::{FloraSeed, FloraSeedApp, FloraSeedType},
+    start_menu::FloraSeedStartMenuItem,
 };
 
 /// Manages Flora seeds configurations
@@ -102,7 +108,7 @@ impl FloraManager {
         let start_menu_location = runner.get_start_menu_entry_location(menu_name)?;
 
         let mut upd_seed = seed.clone();
-        upd_seed.add_app(FloraSeedApp{
+        upd_seed.add_app(FloraSeedApp {
             application_name: menu_name.to_string(),
             application_location: start_menu_location,
             category: None,
@@ -133,22 +139,24 @@ impl FloraManager {
 
         files
             .map(|file_path| -> Result<PathBuf, FloraError> { Ok(file_path?.path()) })
-            .map(|seed_config_path| -> Result<FloraSeedListItem, FloraError> {
-                let file_path = seed_config_path?;
-                let file_stem = file_path.file_stem().unwrap_or_default();
-                let name = String::from(file_stem.to_string_lossy());
+            .map(
+                |seed_config_path| -> Result<FloraSeedListItem, FloraError> {
+                    let file_path = seed_config_path?;
+                    let file_stem = file_path.file_stem().unwrap_or_default();
+                    let name = String::from(file_stem.to_string_lossy());
 
-                let config = self.read_seed(&name)?;
+                    let config = self.read_seed(&name)?;
 
-                Ok(FloraSeedListItem {
-                    seed_name: name,
-                    seed_type: match config.seed_type {
-                        FloraSeedType::Wine(_) => "wine".to_string(),
-                        FloraSeedType::Proton(_) => "proton".to_string(),
-                        FloraSeedType::None => "none".to_string(),
-                    },
-                })
-            })
+                    Ok(FloraSeedListItem {
+                        seed_name: name,
+                        seed_type: match config.seed_type {
+                            FloraSeedType::Wine(_) => "wine".to_string(),
+                            FloraSeedType::Proton(_) => "proton".to_string(),
+                            FloraSeedType::None => "none".to_string(),
+                        },
+                    })
+                },
+            )
             .collect()
     }
 
@@ -255,8 +263,7 @@ impl FloraManager {
 
         let mut files = read_dir(&seed_dir)?
             .map(|seed_config_path| {
-                let path = seed_config_path?
-                    .path();
+                let path = seed_config_path?.path();
                 let file_stem = path.file_stem().unwrap_or_default();
                 let name = file_stem.to_string_lossy();
                 let seed = self.read_seed(&name)?;

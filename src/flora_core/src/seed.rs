@@ -1,10 +1,8 @@
-use std::
-    collections::BTreeMap
-;
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{errors::FloraError};
+use crate::errors::FloraError;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -61,10 +59,11 @@ impl FloraSeed {
     }
 
     pub fn get_app(&self, app_name: &str) -> Result<FloraSeedApp, FloraError> {
-        if let Some(idx) = self.apps.iter().position(|i| {
-            i.application_name == app_name
-        })
-        && let Some(app) = self.apps.get(idx)
+        if let Some(idx) = self
+            .apps
+            .iter()
+            .position(|i| i.application_name == app_name)
+            && let Some(app) = self.apps.get(idx)
         {
             return Ok(app.clone());
         }
@@ -73,9 +72,12 @@ impl FloraSeed {
     }
 
     pub fn add_app(&mut self, new_app: FloraSeedApp) -> Result<(), FloraError> {
-        if self.apps.iter().position(|i| {
-            i.application_name == new_app.application_name
-        }).is_none() {
+        if self
+            .apps
+            .iter()
+            .position(|i| i.application_name == new_app.application_name)
+            .is_none()
+        {
             self.apps.push(new_app);
 
             Ok(())
@@ -98,14 +100,14 @@ impl FloraSeed {
         }
     }
 
-    pub fn rename_app(&mut self, old_app_name: &str, new_app_name: &str) -> Result<(), FloraError>  {
-        if let Some(idx) = self.apps.iter().position(|i| {
-            i.application_name == old_app_name
-        }) {
-            if let Some(app) = self.apps.get_mut(idx)
-            {
-                app.application_name =
-                    String::from(new_app_name);
+    pub fn rename_app(&mut self, old_app_name: &str, new_app_name: &str) -> Result<(), FloraError> {
+        if let Some(idx) = self
+            .apps
+            .iter()
+            .position(|i| i.application_name == old_app_name)
+        {
+            if let Some(app) = self.apps.get_mut(idx) {
+                app.application_name = String::from(new_app_name);
             }
 
             Ok(())
@@ -114,11 +116,12 @@ impl FloraSeed {
         }
     }
 
-
     pub fn update_app(&mut self, app_name: &str, app: FloraSeedApp) -> Result<(), FloraError> {
-        if let Some(idx) = self.apps.iter().position(|i| {
-            i.application_name == app_name
-        }) {
+        if let Some(idx) = self
+            .apps
+            .iter()
+            .position(|i| i.application_name == app_name)
+        {
             self.apps[idx] = app;
 
             Ok(())
@@ -129,10 +132,15 @@ impl FloraSeed {
 
     pub fn get_app_or_default(&self, app_name: &Option<&str>) -> Result<FloraSeedApp, FloraError> {
         let app_entry = match &app_name {
-            Some(app_name) => self.apps
+            Some(app_name) => self
+                .apps
                 .iter()
-                .find(|item| &item.application_name == app_name).ok_or(FloraError::AppNotFound(app_name.to_string()))?,
-            None => self.apps.first().ok_or(FloraError::AppNotFound(String::from("")))?,
+                .find(|item| &item.application_name == app_name)
+                .ok_or(FloraError::AppNotFound(app_name.to_string()))?,
+            None => self
+                .apps
+                .first()
+                .ok_or(FloraError::AppNotFound(String::from("")))?,
         };
 
         Ok(app_entry.clone())
@@ -141,19 +149,16 @@ impl FloraSeed {
 
 // Env functions
 impl FloraSeed {
-    pub fn get_env(&self) -> BTreeMap<String, String>
-    {
+    pub fn get_env(&self) -> BTreeMap<String, String> {
         self.env.clone().unwrap_or_default()
     }
-    pub fn update_env(&mut self, env_name: &str, env_value: &str)
-    {
+    pub fn update_env(&mut self, env_name: &str, env_value: &str) {
         // Edit environment
         let seed_env = self.env.get_or_insert(BTreeMap::new());
         seed_env.insert(String::from(env_name), String::from(env_value));
     }
 
-    pub fn delete_env(&mut self, env_name: &str)
-    {
+    pub fn delete_env(&mut self, env_name: &str) {
         // Edit environment
         let seed_env = self.env.get_or_insert(BTreeMap::new());
         seed_env.remove(env_name);
