@@ -10,12 +10,13 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
         BUILD_TARGET: [release] # refers to a cargo profile
-    steps:
+    steps:    
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v3
     - uses: actions/checkout@v4
     - name: Build in ${{ matrix.BUILD_TARGET }} mode
       run: cargo build --verbose --profile ${{ matrix.BUILD_TARGET }}
