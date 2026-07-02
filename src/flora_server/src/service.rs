@@ -138,6 +138,18 @@ impl FloraManagerService for FloraManagerServiceImpl {
         }))
     }
 
+    async fn delete_seed(
+        &self,
+        request: Request<proto::DeleteSeedRequest>,
+    ) -> Result<Response<proto::DeleteSeedResponse>, Status> {
+        let req = request.into_inner();
+        self.manager
+            .delete_seed(&req.seed_name)
+            .map_err(internal_error)?;
+
+        Ok(Response::new(proto::DeleteSeedResponse {}))
+    }
+
     async fn run_config(
         &self,
         request: Request<RunConfigRequest>,

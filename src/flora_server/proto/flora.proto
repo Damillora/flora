@@ -6,6 +6,7 @@ service FloraManagerService {
   rpc CreateSeed(CreateSeedRequest) returns (CreateSeedResponse);
   rpc UpdateSeed(UpdateSeedRequest) returns (UpdateSeedResponse);
   rpc ListSeed(ListSeedRequest) returns (ListSeedResponse);
+  rpc DeleteSeed(DeleteSeedRequest) returns (DeleteSeedResponse);
 
   // App operations
   rpc CreateApp(CreateAppRequest) returns (CreateAppResponse);
@@ -57,6 +58,12 @@ message ListSeedRequest {}
 message ListSeedResponse {
   repeated ListSeedItem seeds = 1;
 }
+
+message DeleteSeedRequest {
+  string seed_name = 1;
+}
+
+message DeleteSeedResponse {}
 
 message ListSeedItem {
   string seed_name = 1;
