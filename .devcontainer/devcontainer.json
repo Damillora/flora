@@ -1,13 +1,18 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
-    "features": {
-        "ghcr.io/devcontainers/features/common-utils:2": {}
-    },
     "name": "Rust",
     // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-    "image": "rust:latest"
-
+    "image": "rust:latest",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "username": "vscode",
+            "userUid": "1000",
+            "userGid": "1000",
+            "upgradePackages": "true"
+        }
+    },
+    "remoteUser": "vscode"
     // Use 'mounts' to make the cargo cache persistent in a Docker Volume.
     // "mounts": [
     // 	{
