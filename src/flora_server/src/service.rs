@@ -1,7 +1,9 @@
-use flora_core::{manager::FloraManager, seed::{FloraProtonSeed, FloraSeed, FloraSeedType, FloraWineSeed}};
+use std::string;
+
+use flora_core::{errors::FloraError, manager::FloraManager, seed::{FloraProtonSeed, FloraSeed, FloraSeedApp, FloraSeedType, FloraWineSeed}};
 use tonic::{Request, Response, Status};
 
-use crate::proto::{self, ListSeedItem, ListSeedRequest, ListSeedResponse, RunAppRequest, RunAppResponse, RunExecutableRequest, RunExecutableResponse, SeedType::{Proton, Unspecified}, flora_manager_service_server::FloraManagerService};
+use crate::proto::{self, CreateAppRequest, CreateAppResponse, DeleteAppRequest, DeleteAppResponse, DeleteEnvironmentRequest, DeleteEnvironmentResponse, ListEnvironmentItem, ListEnvironmentRequest, ListEnvironmentResponse, ListSeedItem, ListSeedRequest, ListSeedResponse, RenameAppRequest, RenameAppResponse, RunAppRequest, RunAppResponse, RunConfigRequest, RunConfigResponse, RunExecutableRequest, RunExecutableResponse, RunTricksRequest, RunTricksResponse, SeedType::{Proton, Unspecified}, SetEnvironmentRequest, SetEnvironmentResponse, UpdateAppRequest, UpdateAppResponse, flora_manager_service_server::FloraManagerService};
 
 pub struct FloraManagerServiceImpl
 {
@@ -14,6 +16,26 @@ impl FloraManagerServiceImpl {
             manager
         }
     }
+}
+
+// Error handling functions
+fn invalid_error(error: FloraError) -> Status
+{
+    invalid_error_custom(error.to_string())
+}
+
+fn invalid_error_custom(error: String) -> Status
+{
+    Status::new(tonic::Code::InvalidArgument, error)
+}
+
+fn internal_error(error: FloraError) -> Status
+{
+    internal_error_custom(error.to_string())
+}
+
+fn internal_error_custom(error: String) -> Status{
+    Status::new(tonic::Code::Internal, error)
 }
 
 #[tonic::async_trait]
@@ -38,12 +60,11 @@ impl FloraManagerService for FloraManagerServiceImpl {
                 }
             ),
             Ok(Unspecified) | Err(_) => {
-                return Err(Status::new(tonic::Code::InvalidArgument, "Invalid seed type"));
+                return Err(invalid_error_custom(String::from("Incorrect seed type")));
             }
         };
 
-        self.manager.create_seed(&req.seed_name, &new_seed)
-            .map_err(|e| Status::new(tonic::Code::InvalidArgument, e.to_string()))?;
+        self.manager.create_seed(&req.seed_name, &new_seed).map_err(invalid_error)?;
 
         Ok(Response::new(proto::CreateSeedResponse{}))
     }
@@ -51,7 +72,7 @@ impl FloraManagerService for FloraManagerServiceImpl {
     async fn update_seed(&self, request: Request<proto::UpdateSeedRequest>) -> Result<Response<proto::UpdateSeedResponse>,Status>
     {
         let req = request.into_inner();
-        let mut seed = self.manager.get_seed(&req.seed_name).map_err(|e| Status::new(tonic::Code::InvalidArgument, e.to_string()))?;
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
         match seed.seed_type {
             FloraSeedType::Wine(ref mut wine_settings) => {
                 if req.prefix.is_some() {
@@ -77,14 +98,14 @@ impl FloraManagerService for FloraManagerServiceImpl {
             },
             FloraSeedType::None => return Err(Status::new(tonic::Code::InvalidArgument, "Seed is not valid")),
         };
-        self.manager.update_seed(&req.seed_name, &seed).map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+        self.manager.update_seed(&req.seed_name, &seed).map_err(internal_error)?;
 
         Ok(Response::new(proto::UpdateSeedResponse{}))
     }
 
     async fn list_seed(&self, _: Request<ListSeedRequest>) -> Result<Response<ListSeedResponse>, Status>
     {
-        let seeds = self.manager.list_seed().map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+        let seeds = self.manager.list_seed().map_err(internal_error)?;
 
         let mut response = ListSeedResponse::default();
         response.seeds = seeds.iter().map(|e| ListSeedItem {
@@ -95,14 +116,32 @@ impl FloraManagerService for FloraManagerServiceImpl {
         Ok(Response::new(response))
     }
 
+    async fn run_config(&self, request: Request<RunConfigRequest>) -> Result<Response<RunConfigResponse>, Status>
+    {
+        let req = request.into_inner();
+
+        self.manager.seed_config(&req.seed_name, &None, true, false).map_err(invalid_error)?;
+
+        Ok(Response::new(RunConfigResponse {  }))
+    }
+
+    async fn run_tricks(&self, request: Request<RunTricksRequest>) -> Result<Response<RunTricksResponse>, Status>
+    {
+        let req = request.into_inner();
+
+        self.manager.seed_tricks(&req.seed_name, &None, true, false).map_err(invalid_error)?;
+
+        Ok(Response::new(RunTricksResponse {  }))
+    }
+
     async fn run_executable(&self, request: Request<RunExecutableRequest>) -> Result<Response<RunExecutableResponse>, Status>
     {
         let req = request.into_inner();
 
-        let command_param = shlex::split(&req.command_line).ok_or(Status::new(tonic::Code::InvalidArgument, "Invalid command line"))?;
+        let command_param = shlex::split(&req.command_line).ok_or(invalid_error_custom(String::from("Invalid command line")))?;
         let args: Vec<_> = command_param.iter().map(AsRef::as_ref).collect();
 
-        self.manager.seed_run_executable(&req.seed_name, &args, true, false).map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+        self.manager.seed_run_executable(&req.seed_name, &args, true, false).map_err(internal_error)?;
 
         Ok(Response::new(RunExecutableResponse {  }))
     }
@@ -110,8 +149,98 @@ impl FloraManagerService for FloraManagerServiceImpl {
     async fn run_app(&self, request: Request<RunAppRequest>) -> Result<Response<RunAppResponse>, Status>
     {
         let req = request.into_inner();
-        self.manager.seed_run_app(&req.seed_name, &Some(&req.app_name), true, false).map_err(|e| Status::new(tonic::Code::Internal, e.to_string()))?;
+        self.manager.seed_run_app(&req.seed_name, &Some(&req.app_name), true, false).map_err(invalid_error)?;
 
         Ok(Response::new(RunAppResponse {  }))
+    }
+
+    async fn create_app(&self, request: Request<CreateAppRequest>) -> Result<Response<CreateAppResponse>, Status>
+    {
+        let req = request.into_inner();
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+        seed.add_app(FloraSeedApp {
+                application_name: req.app_name,
+                application_location: req.app_location,
+                category: None,
+            }).map_err(invalid_error)?;
+        self.manager.update_seed(&req.seed_name, &seed).map_err(internal_error)?;
+
+        Ok(Response::new(CreateAppResponse{}))
+    }
+
+    async fn update_app(&self, request: Request<UpdateAppRequest>) -> Result<Response<UpdateAppResponse>, Status>
+    {
+        let req = request.into_inner();
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+
+        let mut app = seed.get_app(&req.app_name).map_err(invalid_error)?;
+        app.application_location = req.app_location;
+        seed.update_app(&req.app_name, app).map_err(invalid_error)?;
+
+        self.manager.update_seed(&req.seed_name, &seed).map_err(internal_error)?;
+
+        Ok(Response::new(UpdateAppResponse{}))
+    }
+
+    async fn rename_app(&self, request: Request<RenameAppRequest>) -> Result<Response<RenameAppResponse>, Status>
+    {
+        let req = request.into_inner();
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+
+        let mut app = seed.get_app(&req.app_name).map_err(invalid_error)?;
+        app.application_name = req.new_app_name;
+        seed.update_app(&req.app_name, app).map_err(invalid_error)?;
+
+        self.manager.update_seed(&req.seed_name, &seed).map_err(internal_error)?;
+
+        Ok(Response::new(RenameAppResponse{}))
+    }
+
+    async fn delete_app(&self, request: Request<DeleteAppRequest>) -> Result<Response<DeleteAppResponse>, Status>
+    {
+        let req = request.into_inner();
+
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+        seed.delete_app(&req.app_name).map_err(invalid_error)?;
+
+        self.manager.update_seed(&req.seed_name, &seed).map_err(internal_error)?;
+
+        Ok(Response::new(DeleteAppResponse{}))
+    }
+
+    async fn list_environment(&self, request: Request<ListEnvironmentRequest>) -> Result<Response<ListEnvironmentResponse>, Status>
+    {
+        let req = request.into_inner();
+        let seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+
+        let items: Vec<_> = seed.get_env().iter().map(|t| ListEnvironmentItem
+            {
+                env_name: t.0.clone(),
+                env_value: t.1.clone(),
+            }).collect();
+
+        Ok(Response::new(ListEnvironmentResponse { items: items }))
+    }
+
+    async fn set_environment(&self, request: Request<SetEnvironmentRequest>) -> Result<Response<SetEnvironmentResponse>, Status>
+    {
+        let req = request.into_inner();
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+        seed.update_env(&req.env_name, &req.env_value);
+
+        self.manager.update_seed(&req.seed_name, &seed).map_err(internal_error)?;
+
+        Ok(Response::new(SetEnvironmentResponse {}))
+    }
+
+    async fn delete_environment(&self, request: Request<DeleteEnvironmentRequest>) -> Result<Response<DeleteEnvironmentResponse>, Status>
+    {
+        let req = request.into_inner();
+        let mut seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+        seed.delete_env(&req.env_name);
+
+        self.manager.update_seed(&req.seed_name, &seed).map_err(internal_error)?;
+
+        Ok(Response::new(DeleteEnvironmentResponse {}))
     }
 }
