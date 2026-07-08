@@ -18,6 +18,8 @@ tokio = { version = "1.52.3", features = ["fs", "macros", "rt-multi-thread", "si
 tokio-stream = { version = "0.1.18", features = ["net"] }
 tonic = "0.14.6"
 tonic-prost = "0.14.6"
+tower-http = { version = "0.7.0", features = ["trace"] }
+tracing-subscriber = "0.3.23"
 
 [build-dependencies]
 tonic-prost-build = "0.14.6"

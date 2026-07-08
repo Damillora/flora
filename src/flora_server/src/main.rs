@@ -6,6 +6,7 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
+use tower_http::trace::TraceLayer;
 
 use crate::{
     proto::flora_manager_service_server::FloraManagerServiceServer,
@@ -19,16 +20,9 @@ pub mod service;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let base_dirs = BaseDirs::new().ok_or(FloraError::NoValidHome)?;
-    let mut uds_socket_path = base_dirs
-        .runtime_dir()
-        .ok_or(FloraError::NoValidHome)?
-        .to_path_buf();
-    uds_socket_path.push("flora-server.sock");
+    tracing_subscriber::fmt::init();
 
-    log::info!("Establishing socket...");
-    let uds = UnixListener::bind(&uds_socket_path)?;
-    let incoming = UnixListenerStream::new(uds);
+    let addr = "[::1]:41024".parse()?;
 
     let manager = FloraManager::new()?;
 
@@ -38,14 +32,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     log::info!("Flora gRPC Server is running!");
     Server::builder()
+        .layer(TraceLayer::new_for_grpc())
         .add_service(FloraManagerServiceServer::new(greeter))
-        .serve_with_incoming_shutdown(incoming, async { signal.await.unwrap() })
+        .serve_with_shutdown(addr, async { signal.await.unwrap() })
         .await?;
-
-    log::info!("Cleaning up...");
-    if uds_socket_path.exists() {
-        tokio::fs::remove_file(&uds_socket_path).await?;
-    }
 
     Ok(())
 }
