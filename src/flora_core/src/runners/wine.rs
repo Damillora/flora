@@ -72,6 +72,9 @@ impl<'a> FloraWineRunner<'a> {
                 let mut wine_path = dirs.get_wine_root();
                 wine_path.push(default_wine_runtime.clone());
                 PathBuf::from(&wine_path)
+            } else if Path::new("/.flatpak-info").exists() {
+                // Flatpak default
+                PathBuf::from("/app")
             } else {
                 PathBuf::from("/usr")
             }
