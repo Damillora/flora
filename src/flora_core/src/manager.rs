@@ -137,11 +137,16 @@ impl FloraManager {
 
         let files = read_dir(&seed_dir)?;
 
-        files
+        let mut file_paths: Vec<_> = files
             .map(|file_path| -> Result<PathBuf, FloraError> { Ok(file_path?.path()) })
+            .filter_map(|e| e.ok())
+            .collect();
+        file_paths.sort();
+        file_paths
+            .iter()
             .map(
                 |seed_config_path| -> Result<FloraSeedListItem, FloraError> {
-                    let file_path = seed_config_path?;
+                    let file_path = seed_config_path;
                     let file_stem = file_path.file_stem().unwrap_or_default();
                     let name = String::from(file_stem.to_string_lossy());
 
