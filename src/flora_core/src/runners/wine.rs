@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -41,7 +41,16 @@ impl<'a> FloraWineRunner<'a> {
         let wine_prefix = if let Some(path) = &wine_seed.wine_prefix {
             // Prefix is defined in seed
             // Use prefix defined in seed.
-            PathBuf::from(path.clone())
+            if Path::new(&path).is_relative() {
+                // Prefix is relative to wine prefix location
+                let mut new_path = PathBuf::from(config.wine.wine_prefix_location.clone());
+                new_path.push(path);
+
+                new_path
+            } else {
+                // Prefix is absolute
+                PathBuf::from(path)
+            }
         } else {
             // Prefix is not defined in seed, but there is a default prefix defined globally.
             // Use default prefix from global configuration.
