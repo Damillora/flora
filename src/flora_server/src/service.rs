@@ -3,18 +3,11 @@ use flora_core::{
     manager::FloraManager,
     seed::{FloraProtonSeed, FloraSeed, FloraSeedApp, FloraSeedType, FloraWineSeed},
 };
+use tokio::fs::File;
 use tonic::{Request, Response, Status};
 
 use crate::proto::{
-    self, CreateAppRequest, CreateAppResponse, DeleteAppRequest, DeleteAppResponse,
-    DeleteEnvironmentRequest, DeleteEnvironmentResponse, ListEnvironmentItem,
-    ListEnvironmentRequest, ListEnvironmentResponse, ListSeedItem, ListSeedRequest,
-    ListSeedResponse, RenameAppRequest, RenameAppResponse, RunAppRequest, RunAppResponse,
-    RunConfigRequest, RunConfigResponse, RunExecutableRequest, RunExecutableResponse,
-    RunTricksRequest, RunTricksResponse,
-    SeedType::{Proton, Unspecified},
-    SetEnvironmentRequest, SetEnvironmentResponse, UpdateAppRequest, UpdateAppResponse,
-    flora_manager_service_server::FloraManagerService,
+    self, CreateAppRequest, CreateAppResponse, DeleteAppRequest, DeleteAppResponse, DeleteEnvironmentRequest, DeleteEnvironmentResponse, ListAppItem, ListEnvironmentItem, ListEnvironmentRequest, ListEnvironmentResponse, ListSeedItem, ListSeedRequest, ListSeedResponse, RenameAppRequest, RenameAppResponse, RunAppRequest, RunAppResponse, RunConfigRequest, RunConfigResponse, RunExecutableRequest, RunExecutableResponse, RunTricksRequest, RunTricksResponse, SeedType::{Proton, Unspecified}, SetEnvironmentRequest, SetEnvironmentResponse, UpdateAppRequest, UpdateAppResponse, flora_manager_service_server::FloraManagerService
 };
 
 pub struct FloraManagerServiceImpl {
@@ -75,6 +68,29 @@ impl FloraManagerService for FloraManagerServiceImpl {
         Ok(Response::new(proto::CreateSeedResponse {}))
     }
 
+    async fn get_seed(
+        &self,
+        request: Request<proto::GetSeedRequest>,
+    ) -> Result<Response<proto::GetSeedResponse>, Status> {
+        let req = request.into_inner();
+        let seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+        let res = proto::GetSeedResponse {
+            seed_name: req.seed_name,
+            seed_type: match seed.seed_type {
+                FloraSeedType::Wine(_) => String::from("wine"),
+                FloraSeedType::Proton(_) => String::from("proton"),
+                FloraSeedType::None => String::from("none")
+            },
+            launcher_command: seed.settings.clone().map(|s| s.launcher_command).flatten(),
+            apps: seed.get_apps().iter().map(|a| proto::ListAppItem {
+                app_name: a.application_name.clone(),
+                app_location: a.application_location.clone(),
+            }).collect()
+        };
+
+        Ok(Response::new(res))
+    }
+
     async fn update_seed(
         &self,
         request: Request<proto::UpdateSeedRequest>,
@@ -126,15 +142,35 @@ impl FloraManagerService for FloraManagerServiceImpl {
         _: Request<ListSeedRequest>,
     ) -> Result<Response<ListSeedResponse>, Status> {
         let seeds = self.manager.list_seed().map_err(internal_error)?;
+        let seed_item: Result<Vec<_>, Status> =  seeds
+            .iter()
+            .map(|e| {
+                let seed = self.manager.get_seed(&e.seed_name).map_err(internal_error)?;
+                let (prefix, runtime, game_id, game_store) = match &seed.seed_type {
+                    FloraSeedType::Wine(wine) => (wine.wine_prefix.clone(), wine.wine_runtime.clone(), None, None),
+                    FloraSeedType::Proton(proton) => (proton.proton_prefix.clone(), proton.proton_runtime.clone(), proton.game_id.clone(), proton.store.clone()),
+                    _ => unimplemented!(),
+                };
+                let launcher_command = seed.settings.clone().map(|e| e.launcher_command).flatten();
+                let apps: Vec<_> = seed.get_apps().iter().map(|e| ListAppItem {
+                    app_name: e.application_name.clone(),
+                    app_location: e.application_location.clone(),
+                }).collect();
 
-        Ok(Response::new(ListSeedResponse {
-            seeds: seeds
-                .iter()
-                .map(|e| ListSeedItem {
+                Ok(ListSeedItem {
                     seed_name: e.seed_name.clone(),
                     seed_type: e.seed_type.clone(),
+                    prefix: prefix,
+                    runtime: runtime,
+                    game_id: game_id,
+                    game_store: game_store,
+                    launcher_command: launcher_command,
+                    apps: apps,
                 })
-                .collect(),
+            })
+            .collect();
+        Ok(Response::new(ListSeedResponse {
+            seeds: seed_item?,
         }))
     }
 
@@ -148,61 +184,6 @@ impl FloraManagerService for FloraManagerServiceImpl {
             .map_err(internal_error)?;
 
         Ok(Response::new(proto::DeleteSeedResponse {}))
-    }
-
-    async fn run_config(
-        &self,
-        request: Request<RunConfigRequest>,
-    ) -> Result<Response<RunConfigResponse>, Status> {
-        let req = request.into_inner();
-
-        self.manager
-            .seed_config(&req.seed_name, &None, true, false)
-            .map_err(invalid_error)?;
-
-        Ok(Response::new(RunConfigResponse {}))
-    }
-
-    async fn run_tricks(
-        &self,
-        request: Request<RunTricksRequest>,
-    ) -> Result<Response<RunTricksResponse>, Status> {
-        let req = request.into_inner();
-
-        self.manager
-            .seed_tricks(&req.seed_name, &None, true, false)
-            .map_err(invalid_error)?;
-
-        Ok(Response::new(RunTricksResponse {}))
-    }
-
-    async fn run_executable(
-        &self,
-        request: Request<RunExecutableRequest>,
-    ) -> Result<Response<RunExecutableResponse>, Status> {
-        let req = request.into_inner();
-
-        let command_param = shlex::split(&req.command_line)
-            .ok_or(invalid_error_custom(String::from("Invalid command line")))?;
-        let args: Vec<_> = command_param.iter().map(AsRef::as_ref).collect();
-
-        self.manager
-            .seed_run_executable(&req.seed_name, &args, true, false)
-            .map_err(internal_error)?;
-
-        Ok(Response::new(RunExecutableResponse {}))
-    }
-
-    async fn run_app(
-        &self,
-        request: Request<RunAppRequest>,
-    ) -> Result<Response<RunAppResponse>, Status> {
-        let req = request.into_inner();
-        self.manager
-            .seed_run_app(&req.seed_name, &Some(&req.app_name), true, false)
-            .map_err(invalid_error)?;
-
-        Ok(Response::new(RunAppResponse {}))
     }
 
     async fn create_app(
@@ -344,5 +325,60 @@ impl FloraManagerService for FloraManagerServiceImpl {
             .map_err(internal_error)?;
 
         Ok(Response::new(DeleteEnvironmentResponse {}))
+    }
+
+    async fn run_config(
+        &self,
+        request: Request<RunConfigRequest>,
+    ) -> Result<Response<RunConfigResponse>, Status> {
+        let req = request.into_inner();
+
+        self.manager
+            .seed_config(&req.seed_name, &None, true, false)
+            .map_err(invalid_error)?;
+
+        Ok(Response::new(RunConfigResponse {}))
+    }
+
+    async fn run_tricks(
+        &self,
+        request: Request<RunTricksRequest>,
+    ) -> Result<Response<RunTricksResponse>, Status> {
+        let req = request.into_inner();
+
+        self.manager
+            .seed_tricks(&req.seed_name, &None, true, false)
+            .map_err(invalid_error)?;
+
+        Ok(Response::new(RunTricksResponse {}))
+    }
+
+    async fn run_executable(
+        &self,
+        request: Request<RunExecutableRequest>,
+    ) -> Result<Response<RunExecutableResponse>, Status> {
+        let req = request.into_inner();
+
+        let command_param = shlex::split(&req.command_line)
+            .ok_or(invalid_error_custom(String::from("Invalid command line")))?;
+        let args: Vec<_> = command_param.iter().map(AsRef::as_ref).collect();
+
+        self.manager
+            .seed_run_executable(&req.seed_name, &args, true, false)
+            .map_err(internal_error)?;
+
+        Ok(Response::new(RunExecutableResponse {}))
+    }
+
+    async fn run_app(
+        &self,
+        request: Request<RunAppRequest>,
+    ) -> Result<Response<RunAppResponse>, Status> {
+        let req = request.into_inner();
+        self.manager
+            .seed_run_app(&req.seed_name, &Some(&req.app_name), true, false)
+            .map_err(invalid_error)?;
+
+        Ok(Response::new(RunAppResponse {}))
     }
 }
