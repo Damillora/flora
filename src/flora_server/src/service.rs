@@ -7,7 +7,15 @@ use tokio::fs::File;
 use tonic::{Request, Response, Status};
 
 use crate::proto::{
-    self, CreateAppRequest, CreateAppResponse, DeleteAppRequest, DeleteAppResponse, DeleteEnvironmentRequest, DeleteEnvironmentResponse, ListAppItem, ListEnvironmentItem, ListEnvironmentRequest, ListEnvironmentResponse, ListSeedItem, ListSeedRequest, ListSeedResponse, RenameAppRequest, RenameAppResponse, RunAppRequest, RunAppResponse, RunConfigRequest, RunConfigResponse, RunExecutableRequest, RunExecutableResponse, RunTricksRequest, RunTricksResponse, SeedType::{Proton, Unspecified}, SetEnvironmentRequest, SetEnvironmentResponse, UpdateAppRequest, UpdateAppResponse, flora_manager_service_server::FloraManagerService
+    self, CreateAppRequest, CreateAppResponse, DeleteAppRequest, DeleteAppResponse,
+    DeleteEnvironmentRequest, DeleteEnvironmentResponse, GenerateAppFromStartMenuRequest,
+    GenerateAppFromStartMenuResponse, ListAppItem, ListEnvironmentItem, ListEnvironmentRequest,
+    ListEnvironmentResponse, ListSeedItem, ListSeedRequest, ListSeedResponse, RenameAppRequest,
+    RenameAppResponse, RunAppRequest, RunAppResponse, RunConfigRequest, RunConfigResponse,
+    RunExecutableRequest, RunExecutableResponse, RunTricksRequest, RunTricksResponse,
+    SeedType::{Proton, Unspecified},
+    SetEnvironmentRequest, SetEnvironmentResponse, UpdateAppRequest, UpdateAppResponse,
+    flora_manager_service_server::FloraManagerService,
 };
 
 pub struct FloraManagerServiceImpl {
@@ -73,19 +81,26 @@ impl FloraManagerService for FloraManagerServiceImpl {
         request: Request<proto::GetSeedRequest>,
     ) -> Result<Response<proto::GetSeedResponse>, Status> {
         let req = request.into_inner();
-        let seed = self.manager.get_seed(&req.seed_name).map_err(invalid_error)?;
+        let seed = self
+            .manager
+            .get_seed(&req.seed_name)
+            .map_err(invalid_error)?;
         let res = proto::GetSeedResponse {
             seed_name: req.seed_name,
             seed_type: match seed.seed_type {
                 FloraSeedType::Wine(_) => String::from("wine"),
                 FloraSeedType::Proton(_) => String::from("proton"),
-                FloraSeedType::None => String::from("none")
+                FloraSeedType::None => String::from("none"),
             },
             launcher_command: seed.settings.clone().map(|s| s.launcher_command).flatten(),
-            apps: seed.get_apps().iter().map(|a| proto::ListAppItem {
-                app_name: a.application_name.clone(),
-                app_location: a.application_location.clone(),
-            }).collect()
+            apps: seed
+                .get_apps()
+                .iter()
+                .map(|a| proto::ListAppItem {
+                    app_name: a.application_name.clone(),
+                    app_location: a.application_location.clone(),
+                })
+                .collect(),
         };
 
         Ok(Response::new(res))
@@ -142,21 +157,45 @@ impl FloraManagerService for FloraManagerServiceImpl {
         _: Request<ListSeedRequest>,
     ) -> Result<Response<ListSeedResponse>, Status> {
         let seeds = self.manager.list_seed().map_err(internal_error)?;
-        let seed_item: Result<Vec<_>, Status> =  seeds
+        let seed_item: Result<Vec<_>, Status> = seeds
             .iter()
             .map(|e| {
-                let seed = self.manager.get_seed(&e.seed_name).map_err(internal_error)?;
+                let seed = self
+                    .manager
+                    .get_seed(&e.seed_name)
+                    .map_err(internal_error)?;
                 let (prefix, runtime, game_id, game_store) = match &seed.seed_type {
-                    FloraSeedType::Wine(wine) => (wine.wine_prefix.clone(), wine.wine_runtime.clone(), None, None),
-                    FloraSeedType::Proton(proton) => (proton.proton_prefix.clone(), proton.proton_runtime.clone(), proton.game_id.clone(), proton.store.clone()),
+                    FloraSeedType::Wine(wine) => (
+                        wine.wine_prefix.clone(),
+                        wine.wine_runtime.clone(),
+                        None,
+                        None,
+                    ),
+                    FloraSeedType::Proton(proton) => (
+                        proton.proton_prefix.clone(),
+                        proton.proton_runtime.clone(),
+                        proton.game_id.clone(),
+                        proton.store.clone(),
+                    ),
                     _ => unimplemented!(),
                 };
                 let launcher_command = seed.settings.clone().map(|e| e.launcher_command).flatten();
-                let apps: Vec<_> = seed.get_apps().iter().map(|e| ListAppItem {
-                    app_name: e.application_name.clone(),
-                    app_location: e.application_location.clone(),
-                }).collect();
-
+                let apps: Vec<_> = seed
+                    .get_apps()
+                    .iter()
+                    .map(|e| ListAppItem {
+                        app_name: e.application_name.clone(),
+                        app_location: e.application_location.clone(),
+                    })
+                    .collect();
+                let env: Vec<_> = seed
+                    .get_env()
+                    .iter()
+                    .map(|e| ListEnvironmentItem {
+                        env_name: e.0.clone(),
+                        env_value: e.1.clone(),
+                    })
+                    .collect();
                 Ok(ListSeedItem {
                     seed_name: e.seed_name.clone(),
                     seed_type: e.seed_type.clone(),
@@ -166,12 +205,11 @@ impl FloraManagerService for FloraManagerServiceImpl {
                     game_store: game_store,
                     launcher_command: launcher_command,
                     apps: apps,
+                    env: env,
                 })
             })
             .collect();
-        Ok(Response::new(ListSeedResponse {
-            seeds: seed_item?,
-        }))
+        Ok(Response::new(ListSeedResponse { seeds: seed_item? }))
     }
 
     async fn delete_seed(
@@ -269,6 +307,22 @@ impl FloraManagerService for FloraManagerServiceImpl {
         Ok(Response::new(DeleteAppResponse {}))
     }
 
+    async fn generate_app_from_start_menu(
+        &self,
+        request: Request<GenerateAppFromStartMenuRequest>,
+    ) -> Result<Response<GenerateAppFromStartMenuResponse>, Status> {
+        let req = request.into_inner();
+        let start_menu_entries = self
+            .manager
+            .list_start_menu_entries(&req.seed_name)
+            .map_err(invalid_error)?;
+        for entry in start_menu_entries {
+            self.manager
+                .create_start_menu_app(&req.seed_name, &entry.start_menu_name)
+                .map_err(internal_error)?;
+        }
+        Ok(Response::new(GenerateAppFromStartMenuResponse {}))
+    }
     async fn list_environment(
         &self,
         request: Request<ListEnvironmentRequest>,

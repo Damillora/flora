@@ -14,6 +14,7 @@ service FloraManagerService {
   rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse);
   rpc RenameApp(RenameAppRequest) returns (RenameAppResponse);
   rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse);
+  rpc GenerateAppFromStartMenu(GenerateAppFromStartMenuRequest) returns (GenerateAppFromStartMenuResponse);
 
   // Env operations
   rpc ListEnvironment(ListEnvironmentRequest) returns (ListEnvironmentResponse);
@@ -86,6 +87,7 @@ message ListSeedItem {
   optional string game_store = 6;
   optional string launcher_command = 7;
   repeated ListAppItem apps = 8;
+  repeated ListEnvironmentItem env = 9;
 }
 
 message ListAppItem {
@@ -149,6 +151,12 @@ message DeleteAppRequest {
 }
 
 message DeleteAppResponse {}
+
+message GenerateAppFromStartMenuRequest {
+  string seed_name = 1;
+}
+
+message GenerateAppFromStartMenuResponse {}
 
 message ListEnvironmentRequest {
   string seed_name = 1;
