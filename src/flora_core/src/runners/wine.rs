@@ -198,7 +198,7 @@ impl<'a> FloraRunner for FloraWineRunner<'a> {
             wine_exe.push("bin/wine");
         } else {
             // Use system wine
-            wine_exe.push("/usr/bin/wine");
+            wine_exe.push("wine");
         }
 
         debug!("Using {} for winetricks", wine_exe.to_string_lossy());
