@@ -129,7 +129,7 @@ impl<'a> FloraWineRunner<'a> {
             wine_exe.push("bin/wine");
         } else {
             // Use system wine
-            wine_exe.push("/usr/bin/wine");
+            wine_exe.push("wine");
         }
 
         let mut command = if let Some(settings) = self.settings
