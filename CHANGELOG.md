@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BREAKING: All Flora configuration variables (the `flora.toml` file) are now mandatory
 - flora_server: A Flora gRPC server, useful for GUI clients
 
+### Changed
+- Use `runinprefix` Proton verb to make behavior similar to Wine runner
+- Detect Flatpak environment to get Wine from
+
 ### Fixed
 - Seed list is now sorted alphabetically
 - Do not use /usr for system wine
-- Detect Flatpak environment
 
 ## [0.3.0] - 2026-02-04
 
