@@ -194,6 +194,7 @@ impl<'a> FloraProtonRunner<'a> {
         command
             .env("WINEPREFIX", proton_prefix)
             .env("PROTONPATH", proton_tool)
+            .env("PROTON_VERB", "run")
             .args(args);
 
         if let Some(game_id) = &self.proton_seed.game_id {
