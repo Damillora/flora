@@ -1,6 +1,6 @@
 [package]
 name = "flora_server"
-version = "0.1.0"
+version = "0.4.0"
 edition = "2024"
 authors.workspace = true
 documentation.workspace = true
@@ -10,7 +10,7 @@ license.workspace = true
 
 [dependencies]
 directories = "6.0.0"
-flora_core = { version = "0.3.0", path = "../flora_core" }
+flora_core = { version = "0.4.0", path = "../flora_core" }
 log = "0.4.33"
 prost = "0.14.4"
 shlex = "2.0.1"
